@@ -21,6 +21,9 @@ REQUIRED_ENV.forEach(key => {
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Trust Railway's proxy (fixes X-Forwarded-For / rate-limit warning) ────────
+app.set('trust proxy', 1);
+
 // ── Security & parsing middleware ─────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({
@@ -33,9 +36,8 @@ app.use(cors({
 app.use(express.json({ limit: '256kb' }));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
-// Tighter limit on auth endpoints to prevent brute-force.
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,   // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
@@ -43,7 +45,7 @@ const authLimiter = rateLimit({
 });
 
 const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,    // 1 minute
+  windowMs: 1 * 60 * 1000,
   max: 120,
   message: { error: 'Too many requests. Please try again later.' },
   standardHeaders: true,
@@ -55,7 +57,7 @@ app.use('/auth',           authLimiter, authRouter);
 app.use('/api/deals',      apiLimiter,  dealsRouter);
 app.use('/api/businesses', apiLimiter,  businessesRouter);
 
-// ── Health check (used by Railway's healthcheck + uptime monitors) ────────────
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   try {
     const pool = require('./db/pool');
@@ -82,8 +84,39 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-// ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀  Syft API running on port ${PORT}`);
-  console.log(`    Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// ── Run schema migration then start ──────────────────────────────────────────
+(async () => {
+  const fs   = require('fs');
+  const path = require('path');
+  const pool = require('./db/pool');
+
+  // Split schema into individual statements and run each one separately
+  // so a single failure doesn't prevent the rest from running.
+  const sql        = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
+  const statements = sql
+    .split(';')
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && !s.startsWith('--'));
+
+  let ok = 0, warn = 0;
+  for (const stmt of statements) {
+    try {
+      await pool.query(stmt);
+      ok++;
+    } catch (err) {
+      // "already exists" errors are expected on re-deploy — log but continue
+      if (err.code === '42P07' || err.code === '42710' || err.message.includes('already exists')) {
+        warn++;
+      } else {
+        console.error('⚠️  Migration warning:', err.message);
+        warn++;
+      }
+    }
+  }
+  console.log(`✅  Database schema ready. (${ok} ok, ${warn} skipped)`);
+
+  app.listen(PORT, () => {
+    console.log(`🚀  Syft API running on port ${PORT}`);
+    console.log(`    Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+})();

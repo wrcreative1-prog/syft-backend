@@ -36,14 +36,14 @@ router.get('/nearby', async (req, res) => {
          b.lat,
          b.lng,
          ROUND(
-           ST_Distance(b.location, ST_MakePoint($2, $1)::geography)
+           ST_Distance(ST_MakePoint(b.lng, b.lat)::geography, ST_MakePoint($2, $1)::geography)
          )::int          AS distance_m
        FROM deals d
        JOIN businesses b ON d.business_id = b.id
        WHERE d.active    = TRUE
          AND d.expires_at > NOW()
          AND (d.remaining_redemptions IS NULL OR d.remaining_redemptions > 0)
-         AND ST_DWithin(b.location, ST_MakePoint($2, $1)::geography, $3)
+         AND ST_DWithin(ST_MakePoint(b.lng, b.lat)::geography, ST_MakePoint($2, $1)::geography, $3)
        ORDER BY distance_m ASC
        LIMIT $4`,
       [lat, lng, radius, limit]
