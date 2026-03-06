@@ -92,11 +92,17 @@ app.use((err, req, res, next) => {
 
   // Split schema into individual statements and run each one separately
   // so a single failure doesn't prevent the rest from running.
-  const sql        = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
+  // Strip comment lines first so that CREATE TABLE statements preceded by
+  // block comments (-- ══ ...) aren't accidentally filtered out.
+  const raw = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
+  const sql = raw
+    .split('\n')
+    .filter(line => !line.trim().startsWith('--'))
+    .join('\n');
   const statements = sql
     .split(';')
     .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .filter(s => s.length > 0);
 
   let ok = 0, warn = 0;
   for (const stmt of statements) {
