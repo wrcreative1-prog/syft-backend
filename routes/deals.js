@@ -18,6 +18,8 @@ router.get('/nearby', async (req, res) => {
   }
 
   try {
+    // Haversine distance in metres — no PostGIS required.
+    // $1 = lat, $2 = lng, $3 = radius (m), $4 = limit
     const { rows } = await pool.query(
       `SELECT
          d.id,
@@ -36,14 +38,21 @@ router.get('/nearby', async (req, res) => {
          b.lat,
          b.lng,
          ROUND(
-           ST_Distance(ST_MakePoint(b.lng, b.lat)::geography, ST_MakePoint($2, $1)::geography)
+           6371000 * acos(
+             LEAST(1.0,
+               cos(radians($1)) * cos(radians(b.lat))
+               * cos(radians(b.lng) - radians($2))
+               + sin(radians($1)) * sin(radians(b.lat))
+             )
+           )
          )::int          AS distance_m
        FROM deals d
        JOIN businesses b ON d.business_id = b.id
        WHERE d.active    = TRUE
          AND d.expires_at > NOW()
          AND (d.remaining_redemptions IS NULL OR d.remaining_redemptions > 0)
-         AND ST_DWithin(ST_MakePoint(b.lng, b.lat)::geography, ST_MakePoint($2, $1)::geography, $3)
+         AND b.lat BETWEEN $1 - ($3 / 111000.0) AND $1 + ($3 / 111000.0)
+         AND b.lng BETWEEN $2 - ($3 / (111000.0 * cos(radians($1)))) AND $2 + ($3 / (111000.0 * cos(radians($1))))
        ORDER BY distance_m ASC
        LIMIT $4`,
       [lat, lng, radius, limit]
