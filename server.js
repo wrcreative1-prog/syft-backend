@@ -4,6 +4,7 @@ const express    = require('express');
 const cors       = require('cors');
 const helmet     = require('helmet');
 const rateLimit  = require('express-rate-limit');
+const path       = require('path');
 
 const authRouter       = require('./routes/auth');
 const dealsRouter      = require('./routes/deals');
@@ -73,6 +74,16 @@ app.get('/health', async (req, res) => {
 // ── Root ──────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ name: 'Syft API', version: '1.0.0', status: 'running' });
+});
+
+// ── Business portal (standalone web app) ──────────────────────────────────────
+app.get('/business', (req, res) => {
+  // Override helmet's CSP to allow the portal's inline scripts/styles
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
+  );
+  res.sendFile(path.join(__dirname, 'public', 'business.html'));
 });
 
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
