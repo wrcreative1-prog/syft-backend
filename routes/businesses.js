@@ -5,6 +5,9 @@ const { authenticate, requireBusiness } = require('../middleware/authenticate');
 
 const router = express.Router();
 
+// ── How many founding slots exist ────────────────────────────────────────────
+const FOUNDING_SLOTS = 20;
+
 function signToken(user) {
   return jwt.sign(
     { sub: user.id, email: user.email, role: user.role, name: user.display_name },
@@ -16,15 +19,21 @@ function signToken(user) {
 // ── GET /api/businesses/mine  (business owner) ───────────────────────────────
 router.get('/mine', requireBusiness, async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT * FROM businesses WHERE owner_id = $1 ORDER BY created_at DESC',
+    `SELECT b.*,
+            (SELECT COUNT(*) FROM redemptions r
+               JOIN deals d ON r.deal_id = d.id
+              WHERE d.business_id = b.id) AS total_redemptions
+       FROM businesses b
+      WHERE b.owner_id = $1
+      ORDER BY b.created_at DESC`,
     [req.user.sub]
   );
   res.json({ businesses: rows });
 });
 
 // ── POST /api/businesses  (any authenticated user can register a business) ───
-// Returns the new business record AND a fresh JWT so the app gets the
-// upgraded role ('business') immediately — no re-login needed.
+// Auto-assigns founding status to the first FOUNDING_SLOTS businesses.
+// Returns the new business record + a fresh JWT with role:'business'.
 router.post('/', authenticate, async (req, res) => {
   const { name, category, address, lat, lng } = req.body;
 
@@ -33,28 +42,40 @@ router.post('/', authenticate, async (req, res) => {
   }
 
   try {
+    // Count how many businesses already exist to determine founding status
+    const { rows: countRows } = await pool.query(
+      'SELECT COUNT(*) AS n FROM businesses'
+    );
+    const existing = parseInt(countRows[0].n, 10);
+
+    let plan           = 'free';
+    let foundingNumber = null;
+
+    if (existing < FOUNDING_SLOTS) {
+      plan           = 'founding';
+      foundingNumber = existing + 1;   // 1-based slot number
+    }
+
     const { rows } = await pool.query(
-      `INSERT INTO businesses (owner_id, name, category, address, lat, lng)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO businesses
+         (owner_id, name, category, address, lat, lng, plan, founding_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [req.user.sub, name, category || 'other', address || null, lat, lng]
+      [req.user.sub, name, category || 'other', address || null,
+       lat, lng, plan, foundingNumber]
     );
 
-    // Upgrade role to 'business' and fetch the updated user row
+    // Upgrade role to 'business'
     const { rows: userRows } = await pool.query(
       `UPDATE users SET role = 'business', last_seen_at = NOW()
-       WHERE id = $1
-       RETURNING *`,
+       WHERE id = $1 RETURNING *`,
       [req.user.sub]
     );
 
-    const updatedUser = userRows[0];
-
     res.status(201).json({
       business: rows[0],
-      // Fresh token with role:'business' so the app doesn't need re-login
-      token: signToken(updatedUser),
-      role:  updatedUser.role,
+      token:    signToken(userRows[0]),
+      role:     userRows[0].role,
     });
   } catch (err) {
     console.error('Create business error:', err.message);
