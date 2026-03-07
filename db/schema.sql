@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS deals (
 CREATE INDEX IF NOT EXISTS deals_business_id_idx   ON deals (business_id);
 CREATE INDEX IF NOT EXISTS deals_expires_active_idx ON deals (expires_at, active);
 
+-- Add start_at for scheduled deal windows (safe on re-deploy)
+ALTER TABLE deals ADD COLUMN IF NOT EXISTS start_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
 -- ── Redemptions ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS redemptions (
   id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
