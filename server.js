@@ -8,6 +8,7 @@ const rateLimit  = require('express-rate-limit');
 const authRouter       = require('./routes/auth');
 const dealsRouter      = require('./routes/deals');
 const businessesRouter = require('./routes/businesses');
+const adminRouter      = require('./routes/admin');
 
 // ── Sanity-check required env vars ───────────────────────────────────────────
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
@@ -56,6 +57,7 @@ const apiLimiter = rateLimit({
 app.use('/auth',           authLimiter, authRouter);
 app.use('/api/deals',      apiLimiter,  dealsRouter);
 app.use('/api/businesses', apiLimiter,  businessesRouter);
+app.use('/admin',          adminRouter);
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', async (req, res) => {
@@ -90,10 +92,6 @@ app.use((err, req, res, next) => {
   const path = require('path');
   const pool = require('./db/pool');
 
-  // Split schema into individual statements and run each one separately
-  // so a single failure doesn't prevent the rest from running.
-  // Strip comment lines first so that CREATE TABLE statements preceded by
-  // block comments (-- ══ ...) aren't accidentally filtered out.
   const raw = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
   const sql = raw
     .split('\n')
@@ -110,7 +108,6 @@ app.use((err, req, res, next) => {
       await pool.query(stmt);
       ok++;
     } catch (err) {
-      // "already exists" errors are expected on re-deploy — log but continue
       if (err.code === '42P07' || err.code === '42710' || err.message.includes('already exists')) {
         warn++;
       } else {
