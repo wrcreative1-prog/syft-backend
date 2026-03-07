@@ -5,10 +5,12 @@ const { authenticate, requireBusiness } = require('../middleware/authenticate');
 const router = express.Router();
 
 // ── GET /api/deals/nearby ─────────────────────────────────────────────────────
+// Public. Returns active, non-expired deals within `radius` metres of lat/lng.
+// Query params: lat, lng, radius (metres, default 2000), limit (default 50)
 router.get('/nearby', async (req, res) => {
   const lat    = parseFloat(req.query.lat);
   const lng    = parseFloat(req.query.lng);
-  const radius = Math.min(parseFloat(req.query.radius) || 2000, 10000);
+  const radius = Math.min(parseFloat(req.query.radius) || 2000, 10000);  // cap at 10 km
   const limit  = Math.min(parseInt(req.query.limit)   || 50,   100);
 
   if (isNaN(lat) || isNaN(lng)) {
@@ -16,6 +18,8 @@ router.get('/nearby', async (req, res) => {
   }
 
   try {
+    // Haversine distance in metres — no PostGIS required.
+    // $1 = lat, $2 = lng, $3 = radius (m), $4 = limit
     const { rows } = await pool.query(
       `SELECT
          d.id,
@@ -26,6 +30,7 @@ router.get('/nearby', async (req, res) => {
          d.discount_type,
          d.discount_value,
          d.walk_in_upsell_message,
+         d.start_at,
          d.expires_at,
          d.remaining_redemptions,
          b.id            AS business_id,
@@ -45,6 +50,7 @@ router.get('/nearby', async (req, res) => {
        FROM deals d
        JOIN businesses b ON d.business_id = b.id
        WHERE d.active    = TRUE
+         AND d.start_at   <= NOW()
          AND d.expires_at > NOW()
          AND (d.remaining_redemptions IS NULL OR d.remaining_redemptions > 0)
          AND b.lat BETWEEN $1 - ($3 / 111000.0) AND $1 + ($3 / 111000.0)
@@ -100,13 +106,24 @@ router.post('/', requireBusiness, async (req, res) => {
   const {
     businessId, title, description, emoji, category,
     discountType, discountValue, walkInUpsellMessage,
-    expiresAt, remainingRedemptions,
+    startAt, endAt,
+    // legacy alias
+    expiresAt,
+    remainingRedemptions,
   } = req.body;
 
-  if (!businessId || !title || !discountType || !discountValue || !expiresAt) {
-    return res.status(400).json({ error: 'businessId, title, discountType, discountValue, and expiresAt are required.' });
+  const resolvedEnd   = endAt   || expiresAt;
+  const resolvedStart = startAt || new Date().toISOString();
+
+  if (!businessId || !title || !discountType || !discountValue || !resolvedEnd) {
+    return res.status(400).json({ error: 'businessId, title, discountType, discountValue, and endAt are required.' });
   }
 
+  if (new Date(resolvedEnd) <= new Date(resolvedStart)) {
+    return res.status(400).json({ error: 'End date/time must be after start date/time.' });
+  }
+
+  // Verify the requesting user owns this business
   const bizCheck = await pool.query(
     'SELECT id FROM businesses WHERE id = $1 AND owner_id = $2',
     [businessId, req.user.sub]
@@ -119,13 +136,13 @@ router.post('/', requireBusiness, async (req, res) => {
     const { rows } = await pool.query(
       `INSERT INTO deals
          (business_id, title, description, emoji, category, discount_type,
-          discount_value, walk_in_upsell_message, expires_at, remaining_redemptions)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+          discount_value, walk_in_upsell_message, start_at, expires_at, remaining_redemptions)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING *`,
       [
         businessId, title, description || null, emoji || '🏷️',
         category || 'other', discountType, discountValue,
-        walkInUpsellMessage || null, expiresAt,
+        walkInUpsellMessage || null, resolvedStart, resolvedEnd,
         remainingRedemptions || null,
       ]
     );
@@ -138,6 +155,7 @@ router.post('/', requireBusiness, async (req, res) => {
 
 // ── PATCH /api/deals/:id  (business only) ────────────────────────────────────
 router.patch('/:id', requireBusiness, async (req, res) => {
+  // First confirm ownership
   const { rows: existing } = await pool.query(
     `SELECT d.id FROM deals d
      JOIN businesses b ON d.business_id = b.id
@@ -147,11 +165,12 @@ router.patch('/:id', requireBusiness, async (req, res) => {
   if (!existing[0]) return res.status(403).json({ error: 'Not authorised to edit this deal.' });
 
   const fields = ['title','description','emoji','category','discount_type',
-                  'discount_value','walk_in_upsell_message','expires_at',
+                  'discount_value','walk_in_upsell_message','start_at','expires_at',
                   'remaining_redemptions','active'];
   const keys   = Object.keys(req.body).filter(k => fields.includes(k));
   if (!keys.length) return res.status(400).json({ error: 'No valid fields to update.' });
 
+  // Build dynamic SET clause
   const setClauses = keys.map((k, i) => `"${k}" = $${i + 2}`).join(', ');
   const values     = keys.map(k => req.body[k]);
 
@@ -186,6 +205,8 @@ router.post('/:id/redeem', authenticate, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Lock and verify the deal is still redeemable
     const { rows: dealRows } = await client.query(
       `SELECT id, remaining_redemptions FROM deals
        WHERE id = $1 AND active = TRUE AND expires_at > NOW()
@@ -201,16 +222,21 @@ router.post('/:id/redeem', authenticate, async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: 'This deal has no redemptions remaining.' });
     }
+
+    // Record the redemption (unique constraint prevents double-redeeming)
     await client.query(
       'INSERT INTO redemptions (deal_id, user_id) VALUES ($1, $2)',
       [req.params.id, req.user.sub]
     );
+
+    // Decrement remaining_redemptions if finite
     if (deal.remaining_redemptions !== null) {
       await client.query(
         'UPDATE deals SET remaining_redemptions = remaining_redemptions - 1 WHERE id = $1',
         [req.params.id]
       );
     }
+
     await client.query('COMMIT');
     res.json({ success: true, dealId: req.params.id });
   } catch (err) {
@@ -225,7 +251,7 @@ router.post('/:id/redeem', authenticate, async (req, res) => {
   }
 });
 
-// ── GET /api/deals/saved/list  (authenticated) ────────────────────────────────
+// ── GET /api/deals/saved  (authenticated) ────────────────────────────────────
 router.get('/saved/list', authenticate, async (req, res) => {
   try {
     const { rows } = await pool.query(
