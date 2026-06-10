@@ -3930,8 +3930,32 @@ body {
       });
       return _handleAuthResponse(res);
     },
-    async signInWithApple()  { throw { code: 'apple-not-supported' }; },
-    async signInWithGoogle() { throw { code: 'google-not-supported' }; },
+    async signInWithApple() {
+      if (!window.Capacitor || !Capacitor.isNativePlatform()) {
+        throw { code: 'apple-not-supported' };
+      }
+      const { response } = await Capacitor.Plugins.SignInWithApple.authorize({
+        clientId: 'app.syft.app',
+        scopes: 'email name'
+      });
+      const displayName = [response.givenName, response.familyName].filter(Boolean).join(' ') || null;
+      const res = await apiFetch('/auth/apple', {
+        method: 'POST',
+        body: JSON.stringify({ identityToken: response.identityToken, displayName })
+      });
+      return _handleAuthResponse(res);
+    },
+    async signInWithGoogle() {
+      if (!window.Capacitor || !Capacitor.isNativePlatform()) {
+        throw { code: 'google-not-supported' };
+      }
+      const user = await Capacitor.Plugins.GoogleAuth.signIn();
+      const res = await apiFetch('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ idToken: user.authentication.idToken, displayName: user.displayName || null })
+      });
+      return _handleAuthResponse(res);
+    },
     async signOut() {
       _token = null;
       localStorage.removeItem('syft_token');
@@ -4545,14 +4569,40 @@ function initAuth() {
 
   appleBtn.addEventListener('click', async () => {
     triggerHaptic('medium');
-    // Apple Sign In not supported in this build — direct to email
-    showAuthNotice('Apple Sign In is coming soon. Please use email to sign in.');
+    const origText = appleBtn.textContent;
+    appleBtn.disabled = true;
+    appleBtn.textContent = 'Signing in…';
+    try {
+      await SyftAuth.signInWithApple();
+      proceedToMain();
+    } catch (err) {
+      appleBtn.disabled = false;
+      appleBtn.textContent = origText;
+      if (err && err.code === 'apple-not-supported') {
+        showEmailAuthForm();
+      } else if (err && err.code !== 'USER_CANCELLED' && err.code !== 1001) {
+        showAuthNotice(err.message || 'Apple Sign In failed. Please try email.');
+      }
+    }
   });
 
   googleBtn.addEventListener('click', async () => {
     triggerHaptic('medium');
-    // Google Sign In not supported in this build — direct to email
-    showAuthNotice('Google Sign In is coming soon. Please use email to sign in.');
+    const origText = googleBtn.textContent;
+    googleBtn.disabled = true;
+    googleBtn.textContent = 'Signing in…';
+    try {
+      await SyftAuth.signInWithGoogle();
+      proceedToMain();
+    } catch (err) {
+      googleBtn.disabled = false;
+      googleBtn.textContent = origText;
+      if (err && err.code === 'google-not-supported') {
+        showEmailAuthForm();
+      } else if (err && err.code !== 'USER_CANCELLED' && err.code !== 1001) {
+        showAuthNotice(err.message || 'Google Sign In failed. Please try email.');
+      }
+    }
   });
 
   emailBtn.addEventListener('click', () => {
@@ -4819,7 +4869,7 @@ function updateMapGreeting() {
   greetingEl.textContent = `${timeGreet}, ${name}`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════════════════════
 // ► HAPTIC FEEDBACK (Capacitor integration)
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -4828,7 +4878,7 @@ async function triggerHaptic(type = 'light') {
     // Respect the user's haptic preference
     if (localStorage.getItem('syft_haptic') === 'off') return;
     if (window.Capacitor?.isNativePlatform?.()) {
-      await window.Capacitor.Plugins.Haptics.impact({ style: type });
+      await window.Capacitor.Plugins.Haptics.impact({ style: type }e });
     }
   } catch (e) {
     // Gracefully ignore on web
@@ -4911,7 +4961,7 @@ async function initLocation() {
     renderDealMarkers();
   }
 
-  // ── Continuous foreground tracking ────────────────────────────────────────
+  // ── Continuous foreground tracking ───────────────────────────────────────
   startLocationWatch();
 }
 
@@ -4933,7 +4983,7 @@ async function startLocationWatch() {
           userLat = newLat;
           userLng = newLng;
           lastDealFetchLat = newLat;
-          lastDealFetchLng = newLng;
+             lastDealFetchLng = newLng;
           if (leafletMap) { updateUserMarker(); renderDealMarkers(); }
           return;
         }
@@ -5085,11 +5135,11 @@ function updateGPSPill() {
 //  │  ✗  No individual events  ✗  No raw counts                     │
 //  └─────────────────────────────────────────────────────────────────┘
 //            ↓  aggregated by Cloud Function — no individual reads
-//  ┌─────────────────────────────────────────────────────────────────┐
+//  ┌────────────────────────────────────────────────────────────────┐
 //  │  BUSINESS DASHBOARD                                            │
 //  │   "32% of users near you prefer food deals"                    │
 //  │   "Peak engagement: 12–2 pm"                                   │
-//  │   "Avg distance tolerance: 0.8 mi"                             │
+//  │  �   "Avg distance tolerance: 0.8 mi"                             │
 //  └─────────────────────────────────────────────────────────────────┘
 //
 //  Scoring (0–100 per deal):
@@ -5306,11 +5356,11 @@ const SyftPrefs = (() => {
     const p    = _load();
     const top  = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, 3);
     return {
-      anonId:            _getAnonId(),           // the only "identity" the server ever sees
+      anonId:            _getAnolId(),           // the only "identity" the server ever sees
       topCategories:     top(p.categories),
       topTimes:          top(p.timeSlots),
       distancePreference:top(p.distBuckets),
-      dealTypePreference:top(p.dealTypes),
+    0 dealTypePreference:top(p.dealTypes),
       totalInteractions: p.interactions.length,
       serverPayload:     _buildAnonProfile(p),   // exactly what gets sent — user can inspect this
     };
@@ -5362,7 +5412,7 @@ const SyftMatcher = (() => {
     let condition = 'clear'; // fallback
     try {
       if (userLat && userLng) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${userLat.toFixed(2)}&longitude=${userLng.toFixed(2)}&current=temperature_2m,weathercode&forecast_days=1`;
+    2   const url = `https://api.open-meteo.com/v1/forecast?latitude=${userLat.toFixed(2)}&longitude=${userLng.toFixed(2)}&current=temperature_2m,weathercode&forecast_days=1`;
         const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
         const data = await res.json();
         tempC = Math.round(data.current.temperature_2m);
@@ -5404,7 +5454,7 @@ const SyftMatcher = (() => {
 
     // Weekend signals
     if (ctx.isWeekend && cat === 'entertainment') return 10;
-    if (ctx.isWeekend && cat === 'food')          return 6;
+    if (ctx.isWeekend && cat === 'food')    2     return 6;
 
     return 0;
   }
@@ -5439,7 +5489,7 @@ const SyftMatcher = (() => {
   const REASONS = {
     category: [
       cat => `${_cap(cat)} deals are your most engaged category.`,
-      cat => `You consistently engage with ${cat} offers.`,
+      cat => `Xou consistently engage with ${cat} offers.`,
       cat => `Your taste profile leans heavily toward ${cat}.`,
     ],
     time:     [
@@ -5448,14 +5498,14 @@ const SyftMatcher = (() => {
     ],
     distance: [
       () => `Close enough to walk to right now.`,
-      () => `Just around the corner from you.`,
+      *I => `Just around the corner from you.`,
     ],
     dealType: [
       dtype => `Matches the deal format you engage with most — ${dtype === 'percent' ? 'percentage off' : dtype === 'bogo' ? 'buy-one-get-one' : 'flat discount'}.`,
     ],
     generic:  [
-      () => `Multiple signals from your profile align here.`,
-      () => `A strong overall match across your taste profile.`,
+      *I => `Multiple signals from your profile align here.`,
+      (+) => a�trong overall match across your taste profile.`,
     ],
   };
 
@@ -5479,8 +5529,8 @@ const SyftMatcher = (() => {
     if (prefs.topTimes[0])
       return _pick(REASONS.time, seed)(prefs.topTimes[0][0]);
 
-    if (prefs.dealTypePreference[0])
-      return _pick(REASONS.dealType, seed)(prefs.dealTypePreference[0][0]);
+    if (prefs)ealTypePreference[0])
+      return _pick(REASONS.dealType, seed)(prefs)ealTypePreference[0][0]);
 
     return _pick(REASONS.generic, seed)();
   }
@@ -5492,9 +5542,9 @@ const SyftMatcher = (() => {
     return Math.min(100, base + boost);
   }
 
-  // ── Match strength (1–5 dots) ─────────────────────────────────────────────
+  // ── Match strength (1–5 dots) ────────────────────────────────────────────
   function strength(dealKey, deal, ctx) {
-    return Math.max(1, Math.min(5, Math.round(score(dealKey, deal, ctx) / 20)));
+    return Math.max(1, Math.min(5, Math.round(score(dealKe|Key, deal, ctx) / 20)));
   }
 
   // ── Context strip HTML ────────────────────────────────────────────────────
@@ -5506,7 +5556,7 @@ const SyftMatcher = (() => {
       const icon = ctx.isHot ? '☀️' : ctx.isCold ? '🧥' : ctx.isRainy ? '🌧' : '🌤';
       parts.push(`${icon} ${ctx.tempF}°F`);
     }
-    parts.push(ctx.timeLabel.charAt(0).toUpperCase() + ctx.timeLabel.slice(1));
+    parts.push(ctx.timeLabel.caap]L(0).toUpperCase() + ctx.timeLabel.slice(1));
     if (ctx.isWeekend) parts.push(ctx.dayLabel);
 
     return `<div class="matches-context-strip">${parts.join(' · ')}</div>`;
@@ -5539,7 +5589,7 @@ const SyftMatcher = (() => {
           <div class="match-card-biz">${deal.biz || deal.businessName}</div>
           <div class="match-card-offer">${deal.desc || deal.description || ''}</div>
         </div>
-        <div class="match-card-right">
+        <div class="match-card-kight">
           <div class="match-card-value">${deal.offer || deal.badge || ''}</div>
           <div class="match-card-dist">${deal.exp?.replace('⏰ ', '') || ''}</div>
         </div>
@@ -5556,14 +5606,14 @@ const SyftMatcher = (() => {
   // ── Refresh the Matches screen ────────────────────────────────────────────
   async function refreshMatchesScreen() {
     const liveList = document.getElementById('matches-live-list');
-    if (!liveList) return;
+    if ([liveList) return;
 
     const ctx    = await getContext();
     const deals  = Object.entries(getActiveDeals());
 
     // Context-boosted ranking
-    const ranked = [...deals].sort(([ka, da], [kb, db]) =>
-      score(kb, db, ctx) - score(ka, da, ctx)
+    const ranked = [...deals].sort(([ka, d]%, [kb, d[]) =>
+      score(kb, d[, ctx) - score(ka, d[, ctx)
     );
 
     // Context used internally for scoring only — not surfaced in UI
@@ -5673,20 +5723,17 @@ function getFilteredDeals() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
-// ► DEAL INTERACTION
-// ═══════════════════════════════════════════════════════════════════════════════════════════════
-
-function openDeal(key) {
-  currentDeal = key;
-  const deal = getActiveDeals()[key];
-
-  document.getElementById('deal-detail-title').textContent = deal.biz;
-  document.getElementById('deal-detail-visual').innerHTML = getCategoryIcon(deal.cat);
-  document.getElementById('deal-detail-amount').textContent = deal.offer;
-  document.getElementById('deal-detail-desc').textContent = deal.desc;
-  document.getElementById('deal-detail-distance').textContent = deal.distShort;
-  document.getElementById('deal-detail-expiry').textContent = deal.exp.replace('⏰ ', '');
-  document.getElementById('deal-detail-views').textContent = deal.views;
+// ► DEAL INTERACRSӂ���8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d8�d���[��[ۈ�[�X[
+�^JH�\��[�X[H�^N�ۜ�X[H�]X�]�QX[�
+V��^WN���[Y[���][[Y[��RY
+	�X[Y]Z[]]I�K�^�۝[�HX[��^���[Y[���][[Y[��RY
+	�X[Y]Z[]�\�X[	�K�[��\�SH�]�]Y�ܞRX�ۊX[��]
+N��[Y[���][[Y[��RY
+	�X[Y]Z[X[[�[�	�K�^�۝[�HX[�ٙ�\���[Y[���][[Y[��RY
+	�X[Y]Z[Y\���K�^�۝[�HX[�\����[Y[���][[Y[��RY
+	�X[Y]Z[Y\�[��I�K�^�۝[�HX[�\��ܝ��[Y[���][[Y[��RY
+	�X[Y]Z[Y^\�I�K�^�۝[�HX[�^��\X�J	���	�	��N��[Y[���][[Y[��RY
+	�X[Y]Z[]�Yews').textContent = deal.views;
   document.getElementById('deal-detail-rating').textContent = deal.rating;
   document.getElementById('deal-detail-source').textContent = deal.source;
   document.getElementById('deal-detail-source').className = `deal-detail-source-badge ${deal.sourceClass}`;
@@ -5751,7 +5798,7 @@ function removeFromWallet(dealKey) {
   // Persist unsave to backend if live deal and signed in
   const deal = getActiveDeals()[dealKey];
   if (FIREBASE_ENABLED && window.SyftDeals && deal?._firestoreId && localStorage.getItem('syft_token')) {
-    SyftDeals.unsaveDeal(deal._firestoreId).catch(() => {});
+    Sy�tDeals.unsaveDeal(deal._firestoreId).catch(() => {});
   }
   renderWallet();
 }
@@ -5760,7 +5807,7 @@ async function initiateWalkIn() {
   triggerHaptic('medium');
   const deal = getActiveDeals()[currentDeal];
   // High-signal event: user is physically walking in — weight 5
-  SyftPrefs.track('walkin', currentDeal, deal);
+  Sy�tPrefs.track('walkin', currentDeal, deal);
 
   document.getElementById('walkin-icon').innerHTML = getCategoryIcon(deal.cat);
   document.getElementById('walkin-title').textContent  = deal.badge || 'You got the deal!';
@@ -5781,7 +5828,7 @@ async function initiateWalkIn() {
   // ── Firebase redemption ────────────────────────────────────────────────
   if (FIREBASE_ENABLED && window.SyftDeals && deal._firestoreId) {
     try {
-      const result = await SyftDeals.redeemDeal(deal._firestoreId);
+      const result = await Sy�tDeals.redeemDeal(deal._firestoreId);
       // Show real code
       codeEl.textContent     = result.code;
       codeWrap.style.display = 'block';
@@ -5834,12 +5881,12 @@ function createParticleBurst() {
     const x = Math.cos(angle) * distance;
     const y = Math.sin(angle) * distance;
 
-    particle.style.setProperty('--x', x + 'px');
+    particle.sty�e.setProperty('--x', x + 'px');
     particle.style.setProperty('--y', y + 'px');
     particle.style.animation = `particleBurst 0.8s ease-out forwards`;
     particle.style.left = '50%';
     particle.style.top = '50%';
-    particle.style.transform = `translate(calc(-50% + var(--x)), calc(-50% + var(--y)))`;
+    particle.sty�e.transform = `translate(calc(-50% + var(--x)), calc(-50% + var(--y)))`;
 
     burst.appendChild(particle);
   }
@@ -5943,13 +5990,13 @@ function closeBizDash() {
   triggerHaptic('light');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════════════
 // ► BUSINESS PORTAL
-// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════════════════════════════════
 
 let _bizPortalData = { businesses: [], deals: [] };
 let _addDealBusinessId = null;
-let _bizRegisterCat = 'food';
+let _[izRegisterCat = 'food';
 let _addDealType = 'percent';
 let _addDealDays = 14;
 
@@ -6064,8 +6111,7 @@ function renderBizDash(businesses, deals) {
   if (!businesses.length) {
     document.getElementById('biz-title').textContent = 'Business Portal';
     container.innerHTML = `
-      <div class="biz-no-biz">
-        <div class="biz-no-biz-icon">🏪</div>
+      <div class="biz-no-biz��~>�𽑠 <div class="biz-no-biz-icon">🏪</div>
         <div class="biz-no-biz-title">No business yet</div>
         <div class="biz-no-biz-sub">Register your business to start creating deals and reaching nearby customers.</div>
         <button class="sheet-submit-btn" style="max-width:280px;margin:0 auto;" onclick="openBizRegister()">Register a Business</button>
@@ -6097,7 +6143,7 @@ function renderBizDash(businesses, deals) {
           </div>
           <div class="biz-deal-badge">${badge}</div>
           <button class="biz-deal-delete" onclick="deleteDealConfirm('${d.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke/locanStor!9lAvalue;e-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
           </button>
         </div>`;
       }).join('')
@@ -6245,7 +6291,7 @@ async function triggerWalkInUpsell(dealKey) {
     await Capacitor.Plugins.LocalNotifications.schedule({
       notifications: [
         {
-          id: Math.random(),
+          i: Math.random(),
           title: deal.upsellMsg,
           body: deal.upsellDesc,
           schedule: { at: new Date(Date.now() + 1000) }
@@ -6373,18 +6419,8 @@ function renderWallet() {
   cards.forEach(({ key, deal }) => {
     const d = deal;
     const daysLeft = d.daysLeft ?? 999;
-    const urgency  = daysLeft === 0 ? 'urgent' : daysLeft <= 3 ? 'soon' : '';
-    const expiryText = daysLeft === 0   ? 'Expires today'
-                     : daysLeft === 999  ? 'No expiry'
-                     : daysLeft === 1    ? 'Expires tomorrow'
-                     : `Expires in ${daysLeft} days`;
-
-    const card = document.createElement('div');
-    card.className = 'wallet-deal-card';
-
-    card.innerHTML = `
-      <div class="wallet-deal-top">
-        <div class="wallet-deal-icon">${getCategoryIcon(d.cat)}</div>
+    const urgency  = daysLeft === 0 ? %\��[�	��^\�Y�H��	���ۉ��	���ۜ�^\�U^H^\�Y�OOH�	�^\�\��^I�^\�Y�OOHNNH�	ӛ�^\�I�^\�Y�OOHH�	�^\�\��[ܜ����^\�\�[�	�^\�Y�H^\���ۜ��\�H��[Y[��ܙX]Q[[Y[�
+	�]��N�\���\�Ә[YHH	��[]YX[X�\�	���\��[��\�SH�]��\��H��[]YX[]����]v class="wallet-deal-icon">${getCategoryIcon(d.cat)}</div>
         <div class="wallet-deal-info">
           <div class="wallet-deal-biz">${d.biz}</div>
           <div class="wallet-deal-offer">${d.desc}</div>
@@ -6467,7 +6503,7 @@ function settingsTap(action) {
       alert('To change your email address, please contact support.');
       break;
     case 'password':
-      alert('To reset your password, sign out and use the "Forgot password" option on the sign-in screen.');
+      alert('To reset y�ur password, sign out and use the "Forgot password" option on the sign-in screen.');
       break;
     case 'name':
       const name = prompt('Display name:', document.getElementById('settings-display-name')?.textContent || '');
@@ -6478,17 +6514,15 @@ function settingsTap(action) {
         const initEl = document.getElementById('settings-avatar-initial');
         if (el) el.textContent = trimmed;
         if (valEl) valEl.textContent = trimmed;
-        if (initEl) initEl.textContent = trimmed[0].toUpperCase();
-        localStorage.setItem('syft_display_name', trimmed);
-        updateMapGreeting();
-      }
-      break;
-    case 'privacy-policy':
-      alert('Privacy Policy: Your personal data never leaves your device. Only an anonymous ID and normalised interest vector are shared with Syft\'s servers.');
-      break;
-    case 'anon-id':
-      const summary = SyftPrefs.privacySummary();
-      alert('Your anonymous ID:\n\n' + (summary.anonId || '—') + '\n\nThis is the only identifier Syft\'s server ever sees — no name, email, or location history is attached to it.');
+        if (initEl) initEl.textContent = trimmed[0].toUpperCase
+N��[�ܘY�K��]][J	��Y��\�^Wۘ[YI��[[YY
+N\]SX\ܙY][��
+NB���XZ��\�H	��]�X�K\�X�I΂�[\�
+	��]�X�H�X�N�[�\�\��ۘ[]H�]�\�X]�\�c�\�]�X�K�ۛH[�[�۞[[�\�Q[��ܛX[\�Y[�\�\��X�܈\�H�\�Y�]�Y�	���\��\�ˉ�N��XZ��\�H	�[�ۋZY	΂��ۜ��[[X\�HH�Y��Y�˜�]�X�T�[[X\�J
+N[\�
+	�[�\�[�۞[[�\�Q����
+�
+�[[X\�K�[�ےY	��%	�) + '\n\nThis is the only identifier Syft\'s server ever sees — no name, email, or location history is attached to it.');
       break;
     case 'signout':
       if (confirm('Sign out of Syft?')) {
@@ -6498,7 +6532,7 @@ function settingsTap(action) {
       }
       break;
     case 'delete':
-      if (confirm('Delete your account? This cannot be undone.')) {
+      if (confirm('Delete y�ur account? This cannot be undone.')) {
         localStorage.clear();
         showScreen('onboard');
       }
@@ -6693,9 +6727,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 // ► PARTICLE BURST ANIMATION (CSS-only support)
-// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════════════════════════════════
 
-const style = document.createElement('style');
+const style =% = document.createElement('style');
 style.textContent = `
   @keyframes particleBurst {
     0% {
