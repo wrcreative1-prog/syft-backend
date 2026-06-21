@@ -38,7 +38,6 @@ app.use(cors({
 app.use(express.json({ limit: '256kb' }));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
-
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -80,7 +79,7 @@ app.get('/', (req, res) => {
 // ── Consumer mobile app ───────────────────────────────────────────────────────
 app.get('/app', (req, res) => {
   res.setHeader(
-    'Content-Security-Policy',
+    'Content-Security-Policy', 
     "default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; connect-src 'self' https:;"
   );
   res.sendFile(path.join(__dirname, 'public', 'mobile.html'));
@@ -107,6 +106,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error.' });
 });
 
+// ── Start server ────────────────────────────────────────────────────────────────────
 // ── Run schema migration then start ──────────────────────────────────────────
 (async () => {
   const fs   = require('fs');
