@@ -12,11 +12,11 @@ const dealsRouter      = require('./routes/deals');
 const businessesRouter = require('./routes/businesses');
 const adminRouter      = require('./routes/admin');
 
-// ── Sanity-check required env vars ───────────────────────────────────────────
+// ââ Sanity-check required env vars âââââââââââââââââââââââââââââââââââââââââââ
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
 REQUIRED_ENV.forEach(key => {
   if (!process.env[key]) {
-    console.error(`❌  Missing required environment variable: ${key}`);
+    console.error(`â  Missing required environment variable: ${key}`);
     process.exit(1);
   }
 });
@@ -24,10 +24,10 @@ REQUIRED_ENV.forEach(key => {
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Trust Railways proxy (fixes X-Forwarded-For / rate-limit warning) ────────
+// ââ Trust Railways proxy (fixes X-Forwarded-For / rate-limit warning) ââââââââ
 app.set('trust proxy', 1);
 
-// ── Security & parsing middleware ─────────────────────────────────────────────
+// ââ Security & parsing middleware âââââââââââââââââââââââââââââââââââââââââââââ
 app.use(helmet());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS
@@ -38,7 +38,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '256kb' }));
 
-// ── Rate limiting ─────────────────────────────────────────────────────────────
+// ââ Rate limiting âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -55,13 +55,13 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+// ââ Routes ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.use('/auth',           authLimiter, authRouter);
 app.use('/api/deals',      apiLimiter,  dealsRouter);
 app.use('/api/businesses', apiLimiter,  businessesRouter);
 app.use('/admin',          adminRouter);
 
-// ── Health check ──────────────────────────────────────────────────────────────
+// ââ Health check ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/health', async (req, res) => {
   try {
     const pool = require('./db/pool');
@@ -72,12 +72,12 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ── Root ──────────────────────────────────────────────────────────────────────
+// ââ Root ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/', (req, res) => {
   res.json({ name: 'Syft API', version: '1.0.0', status: 'running' });
 });
 
-// ── Consumer mobile app ───────────────────────────────────────────────────────
+// ââ Consumer mobile app âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.get('/app', (req, res) => {
   res.setHeader(
     'Content-Security-Policy', 
@@ -86,7 +86,7 @@ app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'mobile.html'));
 });
 
-// ── Business portal (standalone web app) ──────────────────────────────────────
+// ââ Business portal (standalone web app) ââââââââââââââââââââââââââââââââââââââ
 app.get('/business', (req, res) => {
   // Override helmet's CSP to allow the portal's inline scripts/styles
   res.setHeader(
@@ -96,19 +96,19 @@ app.get('/business', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'business.html'));
 });
 
-// ── 404 catch-all ─────────────────────────────────────────────────────────────
+// ââ 404 catch-all âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found.` });
 });
 
-// ── Global error handler ──────────────────────────────────────────────────────
+// ââ Global error handler ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-// ── Start server ────────────────────────────────────────────────────────────────────
-// ── Run schema migration then start ──────────────────────────────────────────
+// ââ Start server ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ââ Run schema migration then start ââââââââââââââââââââââââââââââââââââââââââ
 (async () => {
   const fs   = require('fs');
   const path = require('path');
@@ -117,7 +117,7 @@ app.use((err, req, res, next) => {
   // Split schema into individual statements and run each one separately
   // so a single failure doesn't prevent the rest from running.
   // Strip comment lines first so that CREATE TABLE statements preceded by
-  // block comments (-- ══ ...) aren't accidentally filtered out.
+  // block comments (-- ââ ...) aren't accidentally filtered out.
   const raw = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
   const sql = raw
     .split('\n')
@@ -134,19 +134,20 @@ app.use((err, req, res, next) => {
       await pool.query(stmt);
       ok++;
     } catch (err) {
-      // "already exists" errors are expected on re-deploy — log but continue
+      // "already exists" errors are expected on re-deploy â log but continue
       if (err.code === '42P07' || err.code === '42710' || err.message.includes('already exists')) {
         warn++;
       } else {
-        console.error('⚠️  Migration warning:', err.message);
+        console.error('â ï¸  Migration warning:', err.message);
         warn++;
       }
     }
   }
-  console.log(`✅  Database schema ready. (${ok} ok, ${warn} skipped)`);
+  console.log(`â  Database schema ready. (${ok} ok, ${warn} skipped)`);
 
   app.listen(PORT, () => {
-    console.log(`🚀  Syft API running on port ${PORT}`);
+    console.log(`ð  Syft API running on port ${PORT}`);
     console.log(`    Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 })();
+// deploy: mobile.html fix applied
