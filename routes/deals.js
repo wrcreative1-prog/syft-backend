@@ -315,4 +315,93 @@ router.delete('/:id/save', authenticate, async (req, res) => {
   res.json({ saved: false });
 });
 
+// ── POST /api/deals/:id/event  (optional auth — seen / opened) ────────────────
+// Fired by consumer app: { type: 'seen' | 'opened' }
+// Deduplication is handled client-side (session set); server is append-only.
+router.post('/:id/event', async (req, res) => {
+  const { type } = req.body;
+  if (!['seen', 'opened'].includes(type)) {
+    return res.status(400).json({ error: 'type must be "seen" or "opened".' });
+  }
+  // Resolve user_id if token present (optional auth)
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    try {
+      const jwt = require('jsonwebtoken');
+      const payload = jwt.verify(authHeader.replace('Bearer ', ''), process.env.JWT_SECRET);
+      userId = payload.sub;
+    } catch (_) { /* anonymous is fine */ }
+  }
+  try {
+    await pool.query(
+      'INSERT INTO deal_events (deal_id, user_id, event_type) VALUES ($1, $2, $3)',
+      [req.params.id, userId, type]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    // Silently swallow — deal may have been deleted; never fail the consumer app
+    res.json({ ok: false });
+  }
+});
+
+// ── POST /api/deals/:id/rate  (authenticated, must have redeemed) ─────────────
+router.post('/:id/rate', authenticate, async (req, res) => {
+  const rating  = parseInt(req.body.rating, 10);
+  const comment = (req.body.comment || '').trim().slice(0, 500) || null;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be 1–5.' });
+  }
+  // Verify the user actually redeemed this deal
+  const { rows: check } = await pool.query(
+    'SELECT id FROM redemptions WHERE deal_id = $1 AND user_id = $2',
+    [req.params.id, req.user.sub]
+  );
+  if (!check[0]) {
+    return res.status(403).json({ error: 'You can only rate deals you have redeemed.' });
+  }
+  try {
+    await pool.query(
+      `INSERT INTO deal_ratings (deal_id, user_id, rating, comment)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (deal_id, user_id) DO UPDATE SET rating=$3, comment=$4, rated_at=NOW()`,
+      [req.params.id, req.user.sub, rating, comment]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Rate deal error:', err.message);
+    res.status(500).json({ error: 'Could not save rating.' });
+  }
+});
+
+// ── GET /api/deals/:id/ratings  (public — for deal detail view) ───────────────
+router.get('/:id/ratings', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         ROUND(AVG(rating), 1)::float AS avg_rating,
+         COUNT(*)::int                AS total,
+         COUNT(CASE WHEN rating=5 THEN 1 END)::int AS five,
+         COUNT(CASE WHEN rating=4 THEN 1 END)::int AS four,
+         COUNT(CASE WHEN rating=3 THEN 1 END)::int AS three,
+         COUNT(CASE WHEN rating=2 THEN 1 END)::int AS two,
+         COUNT(CASE WHEN rating=1 THEN 1 END)::int AS one
+       FROM deal_ratings WHERE deal_id = $1`,
+      [req.params.id]
+    );
+    // Recent comments (last 10, non-empty)
+    const { rows: comments } = await pool.query(
+      `SELECT rating, comment, rated_at
+       FROM deal_ratings
+       WHERE deal_id = $1 AND comment IS NOT NULL AND comment <> ''
+       ORDER BY rated_at DESC LIMIT 10`,
+      [req.params.id]
+    );
+    res.json({ ...rows[0], comments });
+  } catch (err) {
+    res.status(500).json({ error: 'Could not fetch ratings.' });
+  }
+});
+
 module.exports = router;

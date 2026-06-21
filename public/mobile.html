@@ -3341,6 +3341,46 @@ body {
     </div>
   </div>
 
+  <!-- RATING SHEET (appears after walk-in redemption) -->
+  <div id="rate-backdrop" style="
+    position:fixed;inset:0;background:rgba(28,10,0,0.45);
+    z-index:500;display:none;align-items:flex-end;justify-content:center;
+  " onclick="closeRateSheet(event)">
+    <div id="rate-sheet" style="
+      background:white;border-radius:24px 24px 0 0;
+      padding:28px 24px calc(28px + env(safe-area-inset-bottom));
+      width:100%;max-width:480px;
+      transform:translateY(100%);transition:transform .3s cubic-bezier(.32,0,.67,0);
+    ">
+      <div style="width:36px;height:4px;background:#e5e7eb;border-radius:99px;margin:0 auto 20px;"></div>
+      <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;color:#1C0A00;margin-bottom:4px;" id="rate-title">How was it?</div>
+      <div style="font-size:14px;color:#92400E;margin-bottom:22px;" id="rate-subtitle">Rate your experience</div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:20px;" id="rate-stars">
+        <span data-star="1" onclick="selectStar(1)" style="font-size:36px;cursor:pointer;transition:transform .1s;user-select:none;">☆</span>
+        <span data-star="2" onclick="selectStar(2)" style="font-size:36px;cursor:pointer;transition:transform .1s;user-select:none;">☆</span>
+        <span data-star="3" onclick="selectStar(3)" style="font-size:36px;cursor:pointer;transition:transform .1s;user-select:none;">☆</span>
+        <span data-star="4" onclick="selectStar(4)" style="font-size:36px;cursor:pointer;transition:transform .1s;user-select:none;">☆</span>
+        <span data-star="5" onclick="selectStar(5)" style="font-size:36px;cursor:pointer;transition:transform .1s;user-select:none;">☆</span>
+      </div>
+      <textarea id="rate-comment" placeholder="Leave a note for the merchant… (optional)" style="
+        width:100%;border:1.5px solid #FDE68A;border-radius:12px;
+        padding:12px 14px;font-size:14px;font-family:'DM Sans',sans-serif;
+        color:#1C0A00;background:#FFFBF0;resize:none;height:80px;
+        outline:none;margin-bottom:16px;
+      "></textarea>
+      <button id="rate-submit-btn" onclick="submitRating()" disabled style="
+        width:100%;padding:14px;border-radius:14px;border:none;
+        background:#F59E0B;color:white;font-size:16px;font-weight:700;
+        font-family:'Plus Jakarta Sans',sans-serif;cursor:pointer;
+        opacity:.5;transition:opacity .15s;
+      ">Submit Rating</button>
+      <button onclick="closeRateSheet()" style="
+        width:100%;padding:10px;margin-top:8px;background:none;border:none;
+        font-size:14px;color:#92400E;cursor:pointer;
+      ">Skip</button>
+    </div>
+  </div>
+
   <!-- BUSINESS DASHBOARD -->
   <div id="biz-dashboard" class="screen hidden">
     <div class="biz-header">
@@ -5067,6 +5107,8 @@ async function loadFirestoreDeals(lat, lng) {
     deals.forEach(d => {
       const key = d.id;
       FIRESTORE_DEALS[key] = mapApiDealToLocal(d);
+      // Track "seen" event for merchant analytics (once per session per deal)
+      trackDealEvent(d.id, 'seen');
     });
 
     firestoreDealsLoaded = true;
@@ -5750,6 +5792,9 @@ function openDeal(key) {
   // ── Track view (lowest signal weight = 1) ──
   SyftPrefs.track('view', key, deal);
 
+  // ── Track "opened" event for merchant analytics ──
+  if (deal._firestoreId) trackDealEvent(deal._firestoreId, 'opened');
+
   showScreen('deal');
   triggerHaptic('light');
 }
@@ -5913,11 +5958,94 @@ function closeWalkIn() {
   hideScreen('walkin');
   clearInterval(walkinInterval);
   triggerHaptic('light');
+  // Offer rating sheet if user is signed in and deal has a real ID
+  const deal = currentDeal ? getActiveDeals()[currentDeal] : null;
+  if (deal?._firestoreId && localStorage.getItem('syft_token')) {
+    setTimeout(() => openRateSheet(deal), 600);
+  }
 }
 
 function shareWalkIn() {
   triggerHaptic('medium');
   alert('Share code: SYFT-2024-ABC-123');
+}
+
+// ── Rating sheet ─────────────────────────────────────────────────────────────
+let _ratingDealId  = null;
+let _selectedStar  = 0;
+
+function openRateSheet(deal) {
+  _ratingDealId = deal._firestoreId;
+  _selectedStar = 0;
+  document.getElementById('rate-title').textContent    = `How was ${deal.biz}?`;
+  document.getElementById('rate-subtitle').textContent = deal.offer || deal.badge || 'Rate your experience';
+  document.getElementById('rate-comment').value        = '';
+  document.getElementById('rate-submit-btn').disabled  = true;
+  document.getElementById('rate-submit-btn').style.opacity = '.5';
+  document.querySelectorAll('#rate-stars span').forEach(s => { s.textContent = '☆'; });
+
+  const backdrop = document.getElementById('rate-backdrop');
+  backdrop.style.display = 'flex';
+  requestAnimationFrame(() => {
+    document.getElementById('rate-sheet').style.transform = 'translateY(0)';
+  });
+  triggerHaptic('light');
+}
+
+function closeRateSheet(e) {
+  if (e && e.target !== document.getElementById('rate-backdrop') && e.type === 'click') return;
+  const sheet = document.getElementById('rate-sheet');
+  sheet.style.transform = 'translateY(100%)';
+  setTimeout(() => { document.getElementById('rate-backdrop').style.display = 'none'; }, 300);
+}
+
+function selectStar(n) {
+  _selectedStar = n;
+  document.querySelectorAll('#rate-stars span').forEach((s, i) => {
+    s.textContent = i < n ? '⭐' : '☆';
+    s.style.transform = i < n ? 'scale(1.15)' : 'scale(1)';
+  });
+  document.getElementById('rate-submit-btn').disabled = false;
+  document.getElementById('rate-submit-btn').style.opacity = '1';
+  triggerHaptic('light');
+}
+
+async function submitRating() {
+  if (!_selectedStar || !_ratingDealId) return;
+  const btn     = document.getElementById('rate-submit-btn');
+  const comment = document.getElementById('rate-comment').value.trim();
+  btn.disabled  = true;
+  btn.textContent = 'Saving…';
+  try {
+    await apiFetch(`/api/deals/${_ratingDealId}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ rating: _selectedStar, comment: comment || undefined }),
+    });
+    btn.textContent = '✓ Thanks!';
+    triggerHaptic('success');
+    setTimeout(closeRateSheet, 1200);
+  } catch (err) {
+    btn.textContent = 'Submit Rating';
+    btn.disabled = false;
+    console.warn('Rating error:', err);
+  }
+}
+
+// ── Deal event tracking (seen / opened) ──────────────────────────────────────
+// Session-level dedup: don't fire "seen" or "opened" twice for the same deal
+const _seenThisSession   = new Set();
+const _openedThisSession = new Set();
+
+function trackDealEvent(dealId, type) {
+  if (!dealId) return;
+  const set = type === 'seen' ? _seenThisSession : _openedThisSession;
+  if (set.has(dealId)) return;
+  set.add(dealId);
+  // Fire-and-forget — never block the UI
+  apiFetch(`/api/deals/${dealId}/event`, {
+    method: 'POST',
+    body: JSON.stringify({ type }),
+  }).catch(() => {});
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════

@@ -91,10 +91,37 @@ CREATE TABLE IF NOT EXISTS redemptions (
 
 CREATE INDEX IF NOT EXISTS redemptions_user_id_idx ON redemptions (user_id);
 
--- ── Saved deals (wallet) ──────────────────────────────────────
+-- ── Saved deals (wallet / clipped) ───────────────────────────
 CREATE TABLE IF NOT EXISTS saved_deals (
   deal_id     UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
   user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   saved_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (deal_id, user_id)
 );
+
+-- ── Deal events (seen / opened) ───────────────────────────────
+-- Lightweight impression / tap tracking from the consumer app.
+-- 'seen'   = deal pin appeared on the user's visible map
+-- 'opened' = user tapped the pin and opened the deal card
+CREATE TABLE IF NOT EXISTS deal_events (
+  id           UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  deal_id      UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+  user_id      UUID        REFERENCES users(id) ON DELETE SET NULL,
+  event_type   TEXT        NOT NULL CHECK (event_type IN ('seen', 'opened')),
+  occurred_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS deal_events_deal_idx ON deal_events (deal_id, event_type, occurred_at);
+
+-- ── Deal ratings ──────────────────────────────────────────────
+-- Consumers rate a deal (1–5 stars + optional comment) after
+-- redeeming it. One rating per user per deal.
+CREATE TABLE IF NOT EXISTS deal_ratings (
+  id         UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  deal_id    UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rating     INTEGER     NOT NULL CHECK (rating BETWEEN 1 AND 5),
+  comment    TEXT,
+  rated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (deal_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS deal_ratings_deal_idx ON deal_ratings (deal_id);

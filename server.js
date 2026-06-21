@@ -1,4 +1,3 @@
-// v2 - Postgres online
 require('dotenv').config();
 
 const express    = require('express');
@@ -12,11 +11,11 @@ const dealsRouter      = require('./routes/deals');
 const businessesRouter = require('./routes/businesses');
 const adminRouter      = require('./routes/admin');
 
-// ââ Sanity-check required env vars âââââââââââââââââââââââââââââââââââââââââââ
+// ── Sanity-check required env vars ───────────────────────────────────────────
 const REQUIRED_ENV = ['DATABASE_URL', 'JWT_SECRET'];
 REQUIRED_ENV.forEach(key => {
   if (!process.env[key]) {
-    console.error(`â  Missing required environment variable: ${key}`);
+    console.error(`❌  Missing required environment variable: ${key}`);
     process.exit(1);
   }
 });
@@ -24,10 +23,10 @@ REQUIRED_ENV.forEach(key => {
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ââ Trust Railways proxy (fixes X-Forwarded-For / rate-limit warning) ââââââââ
+// ── Trust Railway's proxy (fixes X-Forwarded-For / rate-limit warning) ────────
 app.set('trust proxy', 1);
 
-// ââ Security & parsing middleware âââââââââââââââââââââââââââââââââââââââââââââ
+// ── Security & parsing middleware ─────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS
@@ -38,7 +37,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '256kb' }));
 
-// ââ Rate limiting âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Rate limiting ─────────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -55,13 +54,13 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ââ Routes ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/auth',           authLimiter, authRouter);
 app.use('/api/deals',      apiLimiter,  dealsRouter);
 app.use('/api/businesses', apiLimiter,  businessesRouter);
 app.use('/admin',          adminRouter);
 
-// ââ Health check ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   try {
     const pool = require('./db/pool');
@@ -72,21 +71,21 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ââ Root ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Root ──────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
   res.json({ name: 'Syft API', version: '1.0.0', status: 'running' });
 });
 
-// ââ Consumer mobile app âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Consumer mobile app ───────────────────────────────────────────────────────
 app.get('/app', (req, res) => {
   res.setHeader(
-    'Content-Security-Policy', 
+    'Content-Security-Policy',
     "default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; connect-src 'self' https:;"
   );
   res.sendFile(path.join(__dirname, 'public', 'mobile.html'));
 });
 
-// ââ Business portal (standalone web app) ââââââââââââââââââââââââââââââââââââââ
+// ── Business portal (standalone web app) ──────────────────────────────────────
 app.get('/business', (req, res) => {
   // Override helmet's CSP to allow the portal's inline scripts/styles
   res.setHeader(
@@ -96,19 +95,19 @@ app.get('/business', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'business.html'));
 });
 
-// ââ 404 catch-all âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({ error: `Route ${req.method} ${req.path} not found.` });
 });
 
-// ââ Global error handler ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── Global error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-// ââ Start server ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-// ââ Run schema migration then start ââââââââââââââââââââââââââââââââââââââââââ
+// ── Start server ──────────────────────────────────────────────────────────────
+// ── Run schema migration then start ──────────────────────────────────────────
 (async () => {
   const fs   = require('fs');
   const path = require('path');
@@ -117,7 +116,7 @@ app.use((err, req, res, next) => {
   // Split schema into individual statements and run each one separately
   // so a single failure doesn't prevent the rest from running.
   // Strip comment lines first so that CREATE TABLE statements preceded by
-  // block comments (-- ââ ...) aren't accidentally filtered out.
+  // block comments (-- ══ ...) aren't accidentally filtered out.
   const raw = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
   const sql = raw
     .split('\n')
@@ -134,20 +133,19 @@ app.use((err, req, res, next) => {
       await pool.query(stmt);
       ok++;
     } catch (err) {
-      // "already exists" errors are expected on re-deploy â log but continue
+      // "already exists" errors are expected on re-deploy — log but continue
       if (err.code === '42P07' || err.code === '42710' || err.message.includes('already exists')) {
         warn++;
       } else {
-        console.error('â ï¸  Migration warning:', err.message);
+        console.error('⚠️  Migration warning:', err.message);
         warn++;
       }
     }
   }
-  console.log(`â  Database schema ready. (${ok} ok, ${warn} skipped)`);
+  console.log(`✅  Database schema ready. (${ok} ok, ${warn} skipped)`);
 
   app.listen(PORT, () => {
-    console.log(`ð  Syft API running on port ${PORT}`);
+    console.log(`🚀  Syft API running on port ${PORT}`);
     console.log(`    Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 })();
-// deploy: mobile.html fix applied

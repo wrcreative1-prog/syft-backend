@@ -621,6 +621,108 @@ body {
 }
 .empty-state-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
 
+/* ── Analytics ─────────────────────────────────────────────────────────────── */
+.analytics-period-bar {
+  display: flex; gap: 6px; margin-bottom: 28px;
+}
+.period-btn {
+  padding: 6px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: white; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--muted); font-family: var(--fn); transition: all .15s;
+}
+.period-btn.active {
+  background: var(--amber); border-color: var(--amber); color: white;
+}
+
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+@media (max-width: 800px) { .analytics-grid { grid-template-columns: 1fr; } }
+
+.analytics-card {
+  background: white; border: 1px solid var(--border); border-radius: 14px; padding: 24px;
+}
+.analytics-card-title {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;
+  font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); margin-bottom: 20px;
+}
+
+/* Funnel bars */
+.funnel-row { margin-bottom: 4px; }
+.funnel-label-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 5px;
+}
+.funnel-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.funnel-count { font-family: var(--fn); font-size: 20px; font-weight: 700; color: var(--text); }
+.funnel-bar-track {
+  height: 8px; background: var(--amber-pale); border-radius: 99px; overflow: hidden;
+  margin-bottom: 4px;
+}
+.funnel-bar-fill {
+  height: 100%; background: var(--amber); border-radius: 99px;
+  transition: width .4s ease;
+}
+.funnel-conversion {
+  font-size: 12px; color: var(--muted); margin-bottom: 14px;
+  padding-left: 2px;
+}
+.funnel-conversion span { color: var(--amber-deep); font-weight: 700; }
+
+/* Rating stars */
+.rating-summary {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+}
+.rating-big { font-family: var(--fn); font-size: 48px; font-weight: 700; line-height: 1; color: var(--text); }
+.rating-stars-col { display: flex; flex-direction: column; gap: 2px; }
+.rating-stars { font-size: 18px; letter-spacing: 1px; }
+.rating-count { font-size: 13px; color: var(--muted); }
+
+.rating-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rating-bar-label { font-size: 13px; font-weight: 600; color: var(--muted); width: 20px; }
+.rating-bar-track { flex: 1; height: 6px; background: var(--amber-pale); border-radius: 99px; overflow: hidden; }
+.rating-bar-fill  { height: 100%; background: var(--amber); border-radius: 99px; transition: width .4s; }
+.rating-bar-count { font-size: 12px; color: var(--muted); width: 24px; text-align: right; font-family: var(--fn); }
+
+.review-list { margin-top: 16px; }
+.review-item {
+  padding: 12px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px;
+}
+.review-stars { font-size: 13px; }
+.review-comment { font-size: 14px; color: var(--text); line-height: 1.5; }
+.review-date { font-size: 12px; color: var(--muted); }
+
+/* Deal performance table */
+.perf-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.perf-table th {
+  text-align: left; padding: 8px 12px; font-size: 12px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.perf-table td { padding: 14px 12px; border-bottom: 1px solid #fef3c7; }
+.perf-table tr:last-child td { border-bottom: none; }
+.perf-table tbody tr { cursor: pointer; transition: background .12s; }
+.perf-table tbody tr:hover { background: var(--amber-pale); }
+.perf-deal-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.perf-num { font-family: var(--fn); font-weight: 700; }
+.perf-pct { font-size: 11px; color: var(--muted); }
+.perf-status-active { color: var(--success); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.perf-status-expired { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.perf-stars { color: var(--amber-deep); font-size: 13px; }
+
+/* Micro deal analytics */
+.micro-back {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: 14px; font-weight: 600; color: var(--muted); margin-bottom: 24px;
+  background: none; border: none; padding: 0;
+}
+.micro-back:hover { color: var(--text); }
+.micro-deal-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+}
+.micro-deal-emoji { font-size: 40px; }
+.micro-deal-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; }
+.micro-deal-meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
 /* ── Modal overlay ─────────────────────────────────────────────────────────── */
 #modal-backdrop {
   position: fixed; inset: 0;
@@ -922,6 +1024,10 @@ body {
         Deals
         <span class="num" id="sidebar-deals-count" style="margin-left:auto;font-size:12px;background:var(--amber-pale);color:var(--amber-deep);padding:1px 7px;border-radius:20px;font-weight:700;"></span>
       </button>
+      <button class="sidebar-nav-item" id="nav-analytics" onclick="switchSection('analytics')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Analytics
+      </button>
       <hr class="sidebar-divider">
       <div class="sidebar-section-label">Account</div>
       <button class="sidebar-nav-item" onclick="signOut()">
@@ -985,6 +1091,79 @@ body {
         </div>
         <div id="deals-container"></div>
       </div>
+
+      <!-- ANALYTICS SECTION -->
+      <div id="section-analytics" class="page-section">
+
+        <!-- MACRO VIEW -->
+        <div id="analytics-macro">
+          <div style="margin-bottom:8px;">
+            <h1 class="h1">Analytics</h1>
+            <p style="font-size:14px;color:var(--muted);margin-top:4px;">See how your deals are performing across the funnel.</p>
+          </div>
+
+          <div class="analytics-period-bar" style="margin-top:20px;">
+            <button class="period-btn" onclick="setAnalyticsPeriod('7d',this)">7 days</button>
+            <button class="period-btn" onclick="setAnalyticsPeriod('30d',this)">30 days</button>
+            <button class="period-btn active" onclick="setAnalyticsPeriod('all',this)">All time</button>
+          </div>
+
+          <div class="analytics-grid">
+            <!-- Funnel card -->
+            <div class="analytics-card" id="analytics-funnel-card">
+              <div class="analytics-card-title">Your Funnel</div>
+              <div id="analytics-funnel">
+                <div style="color:var(--muted);font-size:14px;">Loading…</div>
+              </div>
+            </div>
+            <!-- Rating card -->
+            <div class="analytics-card" id="analytics-rating-card">
+              <div class="analytics-card-title">Overall Rating</div>
+              <div id="analytics-rating-macro">
+                <div style="color:var(--muted);font-size:14px;">Loading…</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Per-deal table -->
+          <div class="analytics-card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:center;">
+              <div class="analytics-card-title" style="margin:0;">Deal Breakdown</div>
+              <span style="font-size:12px;color:var(--muted);">Click a deal for details →</span>
+            </div>
+            <div id="analytics-deals-table" style="padding:0 0 8px;">
+              <div style="padding:20px 24px;color:var(--muted);font-size:14px;">Loading…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MICRO VIEW (individual deal drill-down) -->
+        <div id="analytics-micro" style="display:none;">
+          <button class="micro-back" onclick="showMacroAnalytics()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Analytics
+          </button>
+          <div class="micro-deal-header" id="micro-deal-header"></div>
+
+          <div class="analytics-period-bar">
+            <button class="period-btn" onclick="setMicroPeriod('7d',this)">7 days</button>
+            <button class="period-btn" onclick="setMicroPeriod('30d',this)">30 days</button>
+            <button class="period-btn active" onclick="setMicroPeriod('all',this)">All time</button>
+          </div>
+
+          <div class="analytics-grid">
+            <div class="analytics-card">
+              <div class="analytics-card-title">This Deal's Funnel</div>
+              <div id="micro-funnel"></div>
+            </div>
+            <div class="analytics-card">
+              <div class="analytics-card-title">Ratings &amp; Reviews</div>
+              <div id="micro-ratings"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /section-analytics -->
 
     </main>
   </div>
@@ -1510,7 +1689,7 @@ function dealRow(d) {
     : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
 
   return `<tr>
-    <td class="deal-emoji-col">${d.emoji || '🏷️'}|/td>
+    <td class="deal-emoji-col">${d.emoji || '🏷️'}</td>
     <td>
       <div class="deal-title-col">${escHtml(d.title)}</div>
       ${d.description ? `<div class="deal-desc-col">${escHtml(d.description)}</div>` : ''}
@@ -1536,10 +1715,211 @@ function dealRow(d) {
 
 // ── Sidebar navigation ────────────────────────────────────────────────────────
 function switchSection(name) {
-  ['overview','deals'].forEach(s => {
+  ['overview','deals','analytics'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('active', s === name);
     document.getElementById('nav-' + s)?.classList.toggle('active', s === name);
   });
+  if (name === 'analytics') loadMacroAnalytics();
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+let _analyticsPeriod = 'all';
+let _microDealId     = null;
+let _microPeriod     = 'all';
+let _macroData       = null;
+
+async function loadMacroAnalytics() {
+  try {
+    const data = await api(`/api/businesses/analytics?period=${_analyticsPeriod}`);
+    _macroData = data;
+    renderMacroFunnel(data.totals);
+    renderMacroRating(data.deals);
+    renderDealsTable(data.deals);
+  } catch (e) {
+    document.getElementById('analytics-funnel').innerHTML =
+      '<div style="color:var(--danger);font-size:14px;">Could not load analytics.</div>';
+  }
+}
+
+function setAnalyticsPeriod(p, btn) {
+  _analyticsPeriod = p;
+  document.querySelectorAll('#analytics-macro .period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadMacroAnalytics();
+}
+
+function pct(a, b) { return b > 0 ? Math.round(a / b * 100) : 0; }
+
+function funnelHTML(seen, opened, clipped, redeemed) {
+  const max = Math.max(seen, 1);
+  const stages = [
+    { icon: '👁', label: 'Seen',      count: seen,     prev: null },
+    { icon: '👆', label: 'Opened',    count: opened,   prev: seen },
+    { icon: '📎', label: 'Clipped',   count: clipped,  prev: opened },
+    { icon: '✅', label: 'Redeemed',  count: redeemed, prev: clipped },
+  ];
+  return stages.map((s, i) => `
+    <div class="funnel-row">
+      <div class="funnel-label-row">
+        <span class="funnel-label">${s.icon} ${s.label}</span>
+        <span class="funnel-count">${s.count.toLocaleString()}</span>
+      </div>
+      <div class="funnel-bar-track">
+        <div class="funnel-bar-fill" style="width:${pct(s.count, max)}%"></div>
+      </div>
+      ${s.prev !== null ? `<div class="funnel-conversion">
+        <span>${pct(s.count, s.prev)}%</span> of ${stages[i-1].label.toLowerCase()} ${s.label.toLowerCase()}
+      </div>` : '<div style="height:4px"></div>'}
+    </div>`).join('');
+}
+
+function renderMacroFunnel(totals) {
+  document.getElementById('analytics-funnel').innerHTML =
+    funnelHTML(totals.seen, totals.opened, totals.clipped, totals.redeemed);
+}
+
+function renderMacroRating(deals) {
+  const rated = deals.filter(d => d.rating_count > 0);
+  if (!rated.length) {
+    document.getElementById('analytics-rating-macro').innerHTML =
+      '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No ratings yet.<br><span style="font-size:12px;">Ratings appear after customers redeem and review a deal.</span></div>';
+    return;
+  }
+  const totalRatings = rated.reduce((a, d) => a + d.rating_count, 0);
+  const weightedAvg  = rated.reduce((a, d) => a + d.avg_rating * d.rating_count, 0) / totalRatings;
+  const stars = renderStars(weightedAvg);
+  document.getElementById('analytics-rating-macro').innerHTML = `
+    <div class="rating-summary">
+      <div class="rating-big">${weightedAvg.toFixed(1)}</div>
+      <div class="rating-stars-col">
+        <div class="rating-stars">${stars}</div>
+        <div class="rating-count">${totalRatings} rating${totalRatings !== 1 ? 's' : ''} across ${rated.length} deal${rated.length !== 1 ? 's' : ''}</div>
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--muted);">
+      ${rated.map(d => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--border)">
+        <span>${d.emoji} ${escHtml(d.title)}</span>
+        <span style="color:var(--amber-deep);font-weight:700;">${d.avg_rating ? '⭐ ' + d.avg_rating : '—'}</span>
+      </div>`).join('')}
+    </div>`;
+}
+
+function renderDealsTable(deals) {
+  if (!deals.length) {
+    document.getElementById('analytics-deals-table').innerHTML =
+      '<div style="padding:20px 24px;color:var(--muted);font-size:14px;">No deals yet.</div>';
+    return;
+  }
+  document.getElementById('analytics-deals-table').innerHTML = `
+    <table class="perf-table">
+      <thead><tr>
+        <th>Deal</th>
+        <th>Seen</th><th>Opened</th><th>Clipped</th><th>Redeemed</th>
+        <th>Rating</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        ${deals.map(d => `
+        <tr onclick="openMicroAnalytics('${d.id}')">
+          <td><span class="perf-deal-name">${d.emoji} ${escHtml(d.title)}</span></td>
+          <td><span class="perf-num">${d.seen_count}</span></td>
+          <td><span class="perf-num">${d.opened_count}</span><br><span class="perf-pct">${pct(d.opened_count, d.seen_count)}%</span></td>
+          <td><span class="perf-num">${d.clipped_count}</span><br><span class="perf-pct">${pct(d.clipped_count, d.opened_count)}%</span></td>
+          <td><span class="perf-num">${d.redeemed_count}</span><br><span class="perf-pct">${pct(d.redeemed_count, d.clipped_count)}%</span></td>
+          <td class="perf-stars">${d.avg_rating ? '⭐ ' + d.avg_rating + '<br><span class="perf-pct">(' + d.rating_count + ')</span>' : '—'}</td>
+          <td>${d.active && new Date(d.expires_at) > new Date()
+              ? '<span class="perf-status-active">Active</span>'
+              : '<span class="perf-status-expired">Expired</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── Micro (single deal) ───────────────────────────────────────────────────────
+async function openMicroAnalytics(dealId) {
+  _microDealId = dealId;
+  _microPeriod = 'all';
+  document.querySelectorAll('#analytics-micro .period-btn').forEach((b,i) => b.classList.toggle('active', i===2));
+  document.getElementById('analytics-macro').style.display = 'none';
+  document.getElementById('analytics-micro').style.display = 'block';
+
+  // Set header from cached macro data
+  const deal = _macroData?.deals.find(d => d.id === dealId);
+  if (deal) {
+    const isActive = deal.active && new Date(deal.expires_at) > new Date();
+    document.getElementById('micro-deal-header').innerHTML = `
+      <div class="micro-deal-emoji">${deal.emoji}</div>
+      <div>
+        <div class="micro-deal-title">${escHtml(deal.title)}</div>
+        <div class="micro-deal-meta">${isActive ? '🟢 Active' : '⚫ Expired'} · ${deal.discount_value}${deal.discount_type === 'percent' ? '%' : deal.discount_type === 'dollar' ? '$' : ''} off · expires ${fmtDate(deal.expires_at)}</div>
+      </div>`;
+  }
+  await loadMicroAnalytics();
+}
+
+async function loadMicroAnalytics() {
+  document.getElementById('micro-funnel').innerHTML   = '<div style="color:var(--muted);font-size:14px;">Loading…</div>';
+  document.getElementById('micro-ratings').innerHTML  = '<div style="color:var(--muted);font-size:14px;">Loading…</div>';
+  try {
+    const data = await api(`/api/businesses/analytics/${_microDealId}?period=${_microPeriod}`);
+    const f = data.funnel;
+    document.getElementById('micro-funnel').innerHTML = funnelHTML(f.seen_count, f.opened_count, f.clipped_count, f.redeemed_count);
+    renderMicroRatings(data.ratings);
+  } catch(e) {
+    document.getElementById('micro-funnel').innerHTML = '<div style="color:var(--danger);font-size:14px;">Could not load.</div>';
+  }
+}
+
+function setMicroPeriod(p, btn) {
+  _microPeriod = p;
+  document.querySelectorAll('#analytics-micro .period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadMicroAnalytics();
+}
+
+function renderMicroRatings(r) {
+  if (!r.total) {
+    document.getElementById('micro-ratings').innerHTML =
+      '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No ratings yet.<br><span style="font-size:12px;">Customers can rate this deal after redeeming it.</span></div>';
+    return;
+  }
+  const bars = [5,4,3,2,1].map(n => `
+    <div class="rating-bar-row">
+      <div class="rating-bar-label">${n}★</div>
+      <div class="rating-bar-track"><div class="rating-bar-fill" style="width:${pct(r[['five','four','three','two','one'][5-n]], r.total)}%"></div></div>
+      <div class="rating-bar-count">${r[['five','four','three','two','one'][5-n]]}</div>
+    </div>`).join('');
+  const comments = r.comments.length ? `
+    <div class="review-list">
+      ${r.comments.map(c => `
+        <div class="review-item">
+          <div class="review-stars">${'⭐'.repeat(c.rating)}</div>
+          <div class="review-comment">${escHtml(c.comment)}</div>
+          <div class="review-date">${fmtDate(c.rated_at)}</div>
+        </div>`).join('')}
+    </div>` : '';
+  document.getElementById('micro-ratings').innerHTML = `
+    <div class="rating-summary">
+      <div class="rating-big">${r.avg_rating || '—'}</div>
+      <div class="rating-stars-col">
+        <div class="rating-stars">${renderStars(r.avg_rating)}</div>
+        <div class="rating-count">${r.total} rating${r.total !== 1 ? 's' : ''}</div>
+      </div>
+    </div>
+    ${bars}${comments}`;
+}
+
+function showMacroAnalytics() {
+  document.getElementById('analytics-macro').style.display = '';
+  document.getElementById('analytics-micro').style.display = 'none';
+  _microDealId = null;
+}
+
+function renderStars(avg) {
+  if (!avg) return '☆☆☆☆☆';
+  const full  = Math.floor(avg);
+  const half  = avg - full >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  return '⭐'.repeat(full) + (half ? '✨' : '') + '☆'.repeat(empty);
 }
 
 // ── Create deal modal ─────────────────────────────────────────────────────────

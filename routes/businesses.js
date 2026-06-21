@@ -116,4 +116,115 @@ router.delete('/:id', requireBusiness, async (req, res) => {
   res.json({ deleted: rows[0].id });
 });
 
+// ── GET /api/businesses/analytics  (owner — macro funnel across all deals) ────
+// Query param: period = '7d' | '30d' | 'all'  (default 'all')
+router.get('/analytics', requireBusiness, async (req, res) => {
+  const period = req.query.period || 'all';
+  const since  = period === '7d'  ? "NOW() - INTERVAL '7 days'"
+               : period === '30d' ? "NOW() - INTERVAL '30 days'"
+               : "'-infinity'::timestamptz";
+
+  try {
+    // Per-deal funnel + rating summary
+    const { rows: deals } = await pool.query(
+      `SELECT
+         d.id,
+         d.title,
+         d.emoji,
+         d.active,
+         d.expires_at,
+         d.discount_type,
+         d.discount_value,
+         d.created_at,
+         COUNT(DISTINCT CASE WHEN de.event_type='seen'   AND de.occurred_at >= ${since} THEN de.id END)::int  AS seen_count,
+         COUNT(DISTINCT CASE WHEN de.event_type='opened' AND de.occurred_at >= ${since} THEN de.id END)::int  AS opened_count,
+         COUNT(DISTINCT CASE WHEN sd.saved_at  >= ${since} THEN sd.user_id END)::int                          AS clipped_count,
+         COUNT(DISTINCT CASE WHEN r.redeemed_at >= ${since} THEN r.user_id END)::int                          AS redeemed_count,
+         ROUND(AVG(dr.rating), 1)::float                  AS avg_rating,
+         COUNT(DISTINCT dr.id)::int                       AS rating_count
+       FROM deals d
+       JOIN businesses b ON d.business_id = b.id
+       LEFT JOIN deal_events  de ON de.deal_id  = d.id
+       LEFT JOIN saved_deals  sd ON sd.deal_id  = d.id
+       LEFT JOIN redemptions  r  ON r.deal_id   = d.id
+       LEFT JOIN deal_ratings dr ON dr.deal_id  = d.id
+       WHERE b.owner_id = $1
+       GROUP BY d.id
+       ORDER BY d.created_at DESC`,
+      [req.user.sub]
+    );
+
+    // Totals across all deals
+    const totals = deals.reduce((acc, d) => ({
+      seen:      acc.seen      + d.seen_count,
+      opened:    acc.opened    + d.opened_count,
+      clipped:   acc.clipped   + d.clipped_count,
+      redeemed:  acc.redeemed  + d.redeemed_count,
+    }), { seen: 0, opened: 0, clipped: 0, redeemed: 0 });
+
+    res.json({ totals, deals });
+  } catch (err) {
+    console.error('Analytics error:', err.message);
+    res.status(500).json({ error: 'Could not load analytics.' });
+  }
+});
+
+// ── GET /api/businesses/analytics/:dealId  (owner — micro funnel for one deal) ─
+router.get('/analytics/:dealId', requireBusiness, async (req, res) => {
+  const period = req.query.period || 'all';
+  const since  = period === '7d'  ? "NOW() - INTERVAL '7 days'"
+               : period === '30d' ? "NOW() - INTERVAL '30 days'"
+               : "'-infinity'::timestamptz";
+
+  try {
+    // Verify ownership
+    const { rows: own } = await pool.query(
+      `SELECT d.id FROM deals d JOIN businesses b ON d.business_id = b.id
+       WHERE d.id = $1 AND b.owner_id = $2`,
+      [req.params.dealId, req.user.sub]
+    );
+    if (!own[0]) return res.status(403).json({ error: 'Not found or not authorised.' });
+
+    const { rows: funnel } = await pool.query(
+      `SELECT
+         COUNT(DISTINCT CASE WHEN de.event_type='seen'   AND de.occurred_at >= ${since} THEN de.id END)::int  AS seen_count,
+         COUNT(DISTINCT CASE WHEN de.event_type='opened' AND de.occurred_at >= ${since} THEN de.id END)::int  AS opened_count,
+         COUNT(DISTINCT CASE WHEN sd.saved_at  >= ${since} THEN sd.user_id END)::int                          AS clipped_count,
+         COUNT(DISTINCT CASE WHEN r.redeemed_at >= ${since} THEN r.user_id END)::int                          AS redeemed_count
+       FROM deals d
+       LEFT JOIN deal_events  de ON de.deal_id  = d.id
+       LEFT JOIN saved_deals  sd ON sd.deal_id  = d.id
+       LEFT JOIN redemptions  r  ON r.deal_id   = d.id
+       WHERE d.id = $1`,
+      [req.params.dealId]
+    );
+
+    // Ratings breakdown
+    const { rows: ratings } = await pool.query(
+      `SELECT
+         ROUND(AVG(rating), 1)::float                      AS avg_rating,
+         COUNT(*)::int                                      AS total,
+         COUNT(CASE WHEN rating=5 THEN 1 END)::int         AS five,
+         COUNT(CASE WHEN rating=4 THEN 1 END)::int         AS four,
+         COUNT(CASE WHEN rating=3 THEN 1 END)::int         AS three,
+         COUNT(CASE WHEN rating=2 THEN 1 END)::int         AS two,
+         COUNT(CASE WHEN rating=1 THEN 1 END)::int         AS one
+       FROM deal_ratings WHERE deal_id = $1`,
+      [req.params.dealId]
+    );
+
+    const { rows: comments } = await pool.query(
+      `SELECT rating, comment, rated_at FROM deal_ratings
+       WHERE deal_id = $1 AND comment IS NOT NULL AND comment <> ''
+       ORDER BY rated_at DESC LIMIT 10`,
+      [req.params.dealId]
+    );
+
+    res.json({ funnel: funnel[0], ratings: { ...ratings[0], comments } });
+  } catch (err) {
+    console.error('Micro analytics error:', err.message);
+    res.status(500).json({ error: 'Could not load deal analytics.' });
+  }
+});
+
 module.exports = router;
