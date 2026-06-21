@@ -23,7 +23,7 @@ REQUIRED_ENV.forEach(key => {
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Trust Railway's proxy (fixes X-Forwarded-For / rate-limit warning) ────────
+// ── Trust Railways proxy (fixes X-Forwarded-For / rate-limit warning) ────────
 app.set('trust proxy', 1);
 
 // ── Security & parsing middleware ─────────────────────────────────────────────
@@ -38,6 +38,7 @@ app.use(cors({
 app.use(express.json({ limit: '256kb' }));
 
 // ── Rate limiting ─────────────────────────────────────────────────────────────
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -76,6 +77,15 @@ app.get('/', (req, res) => {
   res.json({ name: 'Syft API', version: '1.0.0', status: 'running' });
 });
 
+// ── Consumer mobile app ───────────────────────────────────────────────────────
+app.get('/app', (req, res) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' https:; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; connect-src 'self' https:;"
+  );
+  res.sendFile(path.join(__dirname, 'public', 'mobile.html'));
+});
+
 // ── Business portal (standalone web app) ──────────────────────────────────────
 app.get('/business', (req, res) => {
   // Override helmet's CSP to allow the portal's inline scripts/styles
@@ -103,6 +113,10 @@ app.use((err, req, res, next) => {
   const path = require('path');
   const pool = require('./db/pool');
 
+  // Split schema into individual statements and run each one separately
+  // so a single failure doesn't prevent the rest from running.
+  // Strip comment lines first so that CREATE TABLE statements preceded by
+  // block comments (-- ══ ...) aren't accidentally filtered out.
   const raw = fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8');
   const sql = raw
     .split('\n')
@@ -119,6 +133,7 @@ app.use((err, req, res, next) => {
       await pool.query(stmt);
       ok++;
     } catch (err) {
+      // "already exists" errors are expected on re-deploy — log but continue
       if (err.code === '42P07' || err.code === '42710' || err.message.includes('already exists')) {
         warn++;
       } else {
