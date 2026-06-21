@@ -71,7 +71,7 @@
   --text: #1C0A00;
   --muted: #92400E;
   --surface: #FFFFFF;
-  --border: #FDDf8A;
+  --border: #FDE68A;
   --success: #16A34A;
   --pill-bg: #FEF3C7;
   --navy: #0D0D1A;
@@ -125,7 +125,7 @@ body {
 /* old #splash-screen removed — replaced by #splash-overlay */
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ANIMATED SPLARH OVERLAY
+   ANIMATED SPLASH OVERLAY
    Timeline (~5.5s):
      0.1s  — pin springs in
      0.9s  — pin holds
@@ -772,39 +772,6 @@ body {
   100% { background-position: -200% 0; }
 }
 
-.deal-list-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.deal-list-section {
-  flex-shrink: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-}
-
-.deal-list-title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  margin-bottom: 16px;
-}
-#map-screen {
-  background: var(--warm-white);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: absolute;
-  inset: 0;
-}
-#map-container {
-  min-height: 240px;
-  flex-shrink: 0;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN APP LAYOUT
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -861,7 +828,38 @@ body {
 
 .map-topbar {
   flex-shrink: 0;
-  padding: calckground: rgba(255, 255, 255, 0.9);
+  padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--warm-white);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.map-greeting {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.map-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.map-gps-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--border);
   font-size: 12px;
   font-weight: 600;
@@ -3379,118 +3377,6 @@ body {
     </div>
 
     <div class="sheet-field">
-      <div clfor-you-badge" class="for-you-badge" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-        For You
-      </div>
-
-      <div class="deal-detail-offer">
-        <div class="deal-detail-amount" id="deal-detail-amount">20%</div>
-        <div class="deal-detail-desc" id="deal-detail-desc">Any large pizza · Lunchtime deal</div>
-      </div>
-
-      <div class="deal-detail-meta">
-        <div class="deal-detail-meta-item">
-          <div class="deal-detail-meta-label">Distance</div>
-          <div class="deal-detail-meta-value" id="deal-detail-distance">42m away</div>
-        </div>
-        <div class="deal-detail-meta-item">
-          <div class="deal-detail-meta-label">Expires</div>
-          <div class="deal-detail-meta-value" id="deal-detail-expiry">Today</div>
-        </div>
-        <div class="deal-detail-meta-item">
-          <div class="deal-detail-meta-label">Views</div>
-          <div class="deal-detail-meta-value" id="deal-detail-views">247</div>
-        </div>
-        <div class="deal-detail-meta-item">
-          <div class="deal-detail-meta-label">Rating</div>
-          <div class="deal-detail-meta-value deal-detail-rating" id="deal-detail-rating">4.7★</div>
-        </div>
-      </div>
-
-      <div class="deal-detail-source">
-        <div class="deal-detail-source-label">Source</div>
-        <div class="deal-detail-source-badge" id="deal-detail-source">Groupon</div>
-      </div>
-
-      <div class="deal-detail-upsell">
-        <div class="deal-detail-upsell-icon" id="deal-detail-upsell-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
-        <div class="deal-detail-upsell-content">
-          <div class="deal-detail-upsell-title" id="deal-detail-upsell-title">20% off garlic bread</div>
-          <div class="deal-detail-upsell-desc" id="deal-detail-upsell-desc">off any appetizer · Today only</div>
-        </div>
-      </div>
-
-      <div class="deal-detail-buttons">
-        <button class="btn-primary" onclick="initiateWalkIn()">I'm Here! Claim Deal</button>
-        <button class="btn-secondary" onclick="saveDeal()">Save for Later</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- WALK-IN EXPERIENCE -->
-  <div id="walkin-screen" class="hidden">
-    <div class="walkin-modal">
-      <div class="walkin-burst" id="walkin-burst"></div>
-      <div class="walkin-icon" id="walkin-icon"></div>
-      <div class="walkin-title" id="walkin-title">You got the deal!</div>
-      <div class="walkin-subtitle" id="walkin-subtitle">Show this code to the staff</div>
-      <!-- Redemption code — populated by JS; shown for Firebase-verified deals -->
-      <div id="walkin-code-wrap" style="
-        background:rgba(245,158,11,0.12);
-        border:1.5px solid rgba(245,158,11,0.35);
-        border-radius:16px;
-        padding:14px 28px;
-        margin:12px 0 4px;
-        display:none;
-      ">
-        <div style="font-size:11px;font-weight:600;color:var(--amber-deep);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">Your Code</div>
-        <div id="walkin-code" style="font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;color:var(--amber);letter-spacing:0.14em;font-variant-numeric:tabular-nums;">——</div>
-      </div>
-      <div class="walkin-timer" id="walkin-timer">30:00</div>
-      <div class="walkin-buttons">
-        <button class="btn-primary" onclick="shareWalkIn()">Share Code</button>
-        <button class="btn-secondary" onclick="closeWalkIn()">Done</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- BUSINESS DASHBOARD -->
-  <div id="biz-dashboard" class="screen hidden">
-    <div class="biz-header">
-      <div class="biz-title" id="biz-title">Business Portal</div>
-      <button class="deal-detail-close" id="biz-close-btn" onclick="closeBizDash()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <!-- Dynamic content populated by renderBizDash() -->
-    <div id="biz-dashboard-content">
-      <div style="text-align:center;padding:60px 0;color:var(--muted);">Loading…</div>
-    </div>
-  </div>
-
-  <!-- BUSINESS REGISTER SHEET -->
-  <div id="biz-register-backdrop" onclick="closeBizRegister()"></div>
-  <div id="biz-register-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">Register Your Business</div>
-    <div class="sheet-subtitle">Get your deals in front of nearby customers automatically.</div>
-
-    <div class="sheet-field">
-      <div class="sheet-label">Business Name *</div>
-      <input id="biz-reg-name" class="sheet-input" type="text" placeholder="e.g. The Daily Grind Coffee" autocomplete="off">
-    </div>
-
-    <div class="sheet-field">
-      <div class="sheet-label">Category</div>
-      <div class="sheet-pills">
-        <button class="sheet-pill active" data-cat="food" onclick="selectBizCat(this)">🍕 Food & Drink</button>
-        <button class="sheet-pill" data-cat="fitness" onclick="selectBizCat(this)">💪 Fitness</button>
-        <button class="sheet-pill" data-cat="beauty" onclick="selectBizCat(this)">💅 Beauty</button>
-        <button class="sheet-pill" data-cat="retail" onclick="selectBizCat(this)">🛍️ Retail</button>
-        <button class="sheet-pill" data-cat="other" onclick="selectBizCat(this)">✨ Other</button>
-      </div>
-    </div>
-
-    <div class="sheet-field">
       <div class="sheet-label">Address <span style="font-weight:400;color:var(--muted)">(optional)</span></div>
       <input id="biz-reg-address" class="sheet-input" type="text" placeholder="e.g. 123 Main Street" autocomplete="off">
     </div>
@@ -4453,7 +4339,7 @@ const DEALS = {
     source: 'RetailMeNot',
     sourceClass: 'retail',
     upsellIcon: '🧦',
-    upsellMsg: 'Free socks&�ith any shoe purchase',
+    upsellMsg: 'Free socks with any shoe purchase',
     upsellAmount: 'FREE',
     upsellDesc: 'socks with shoe purchase · In-store',
     pinPos: 'top:52%;left:36%',
@@ -4547,7 +4433,7 @@ function hideSplash() {
 
   function onResume() {
     if (lastBackgroundTime === null) return;
-    const awaySecs= (Date.now() - lastBackgroundTime) / 1000;
+    const awaySecs = (Date.now() - lastBackgroundTime) / 1000;
     lastBackgroundTime = null;
     if (awaySecs < MIN_BACKGROUND_S) return;
 
@@ -4605,7 +4491,7 @@ function hideSplash() {
 function initOnboarding() {
   const slides = document.getElementById('onboard-slides');
   const dots = document.getElementById('onboard-dots');
-  let4 currentSlide = 0;
+  let currentSlide = 0;
 
   function updateDots() {
     dots.querySelectorAll('.onboard-dot').forEach((dot, i) => {
@@ -5199,7 +5085,7 @@ function getActiveDeals() {
   return DEALS;
 }
 
-acync function fetchCityName(lat, lng) {
+async function fetchCityName(lat, lng) {
   const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
   const data = await res.json();
   return data.address.city || data.address.town || 'Nearby';
@@ -5234,12 +5120,11 @@ function updateGPSPill() {
 //  │   • Raw signal counts (food: 12, afternoon: 8, ...)            │
 //  │   • Full location history                                      │
 //  └─────────────────────────────────────────────────────────────────┘
-//            
-   only after save / walk-in / redeem
+//            ↓  only after save / walk-in / redeem
 //  ┌─────────────────────────────────────────────────────────────────┐
 //  │  SERVER (Firestore /anonymous_profiles/{anonId})               │
 //  │   • Random UUID — generated once, stored only on device        │
-//  │   • Normalized interest vector  { food: 0.82, ... }  (0–1)     │
+//  │   • Normalized interest vector  { food: 0.82, ... }  (0–1)    │
 //  │   • Top time slot ("afternoon")                                │
 //  │   • Distance preference bucket ("under1")                      │
 //  │   • Deal-type preference ("percent")                           │
@@ -5289,7 +5174,7 @@ const SyftPrefs = (() => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // ── Anonymous ID — random UUID, never tied to identity  ──────────────────
+  // ── Anonymous ID — random UUID, never tied to identity ───────────────────
   function _getAnonId() {
     let id = localStorage.getItem(ANON_ID_KEY);
     if (!id) {
@@ -5645,7 +5530,7 @@ const SyftMatcher = (() => {
       return _pick(REASONS.time, seed)(prefs.topTimes[0][0]);
 
     if (prefs.dealTypePreference[0])
-      return _pich(REASONS.dealType, seed)(prefs.dealTypePreference[0][0]);
+      return _pick(REASONS.dealType, seed)(prefs.dealTypePreference[0][0]);
 
     return _pick(REASONS.generic, seed)();
   }
@@ -6036,7 +5921,7 @@ function shareWalkIn() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
-// ► SCPEEMMANAGEMENT
+// ► SCREEN MANAGEMENT
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 function switchScreen(name) {
@@ -6109,52 +5994,180 @@ function closeBizDash() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
-// ► just now</div>
+// ► BUSINESS PORTAL
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+let _bizPortalData = { businesses: [], deals: [] };
+let _addDealBusinessId = null;
+let _bizRegisterCat = 'food';
+let _addDealType = 'percent';
+let _addDealDays = 14;
+
+async function openBizPortal() {
+  triggerHaptic('light');
+  try {
+    const raw = localStorage.getItem('syft_user');
+    if (!raw) return;
+    const user = JSON.parse(raw);
+    const role = user.role || 'user';
+    if (role === 'user') {
+      openBizRegister();
+    } else {
+      showScreen('biz');
+      await loadBizDash();
+    }
+  } catch(e) { openBizRegister(); }
+}
+
+// ── Register sheet ──────────────────────────────────────────────────────────
+
+function openBizRegister() {
+  document.getElementById('biz-reg-name').value = '';
+  document.getElementById('biz-reg-address').value = '';
+  document.getElementById('biz-reg-error').textContent = '';
+  document.getElementById('biz-reg-submit').disabled = false;
+  document.getElementById('biz-reg-submit').textContent = 'Register Business';
+  // Reset category pills
+  document.querySelectorAll('#biz-register-sheet .sheet-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.cat === 'food');
+  });
+  _bizRegisterCat = 'food';
+  document.getElementById('biz-register-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('biz-register-sheet').classList.add('open'), 10);
+}
+
+function closeBizRegister() {
+  document.getElementById('biz-register-sheet').classList.remove('open');
+  setTimeout(() => document.getElementById('biz-register-backdrop').classList.remove('open'), 320);
+}
+
+function selectBizCat(el) {
+  document.querySelectorAll('#biz-register-sheet .sheet-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  _bizRegisterCat = el.dataset.cat;
+}
+
+async function submitBizRegister() {
+  const name    = document.getElementById('biz-reg-name').value.trim();
+  const address = document.getElementById('biz-reg-address').value.trim();
+  const errEl   = document.getElementById('biz-reg-error');
+  if (!name) { errEl.textContent = 'Business name is required.'; return; }
+
+  const btn = document.getElementById('biz-reg-submit');
+  btn.disabled = true;
+  btn.textContent = 'Registering…';
+  errEl.textContent = '';
+
+  try {
+    let lat = 41.8781, lng = -87.6298;
+    try {
+      const pos = await Capacitor.Plugins.Geolocation.getCurrentPosition({});
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch(e) {}
+
+    const res = await SyftBiz.registerBusiness({ name, category: _bizRegisterCat, address, lat, lng });
+    if (res.error) { errEl.textContent = res.error; btn.disabled = false; btn.textContent = 'Register Business'; return; }
+
+    // Save fresh token + updated user role
+    if (res.token) {
+      const u = JSON.parse(localStorage.getItem('syft_user') || '{}');
+      u.role = res.role || 'business';
+      SyftAuth.updateToken(res.token, u);
+      updateBizSettingsRow(u.role);
+    }
+    closeBizRegister();
+    setTimeout(async () => {
+      showScreen('biz');
+      await loadBizDash();
+    }, 360);
+  } catch(e) {
+    errEl.textContent = 'Registration failed. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Register Business';
+  }
+}
+
+// ── Dashboard loader / renderer ──────────────────────────────────────────────
+
+async function loadBizDash() {
+  const container = document.getElementById('biz-dashboard-content');
+  container.innerHTML = '<div style="text-align:center;padding:60px 0;color:var(--muted);">Loading…</div>';
+  try {
+    const [bizRes, dealRes] = await Promise.all([
+      SyftBiz.getMyBusinesses(),
+      SyftBiz.getMyDeals()
+    ]);
+    _bizPortalData = {
+      businesses: bizRes.businesses || [],
+      deals: dealRes.deals || []
+    };
+    renderBizDash(_bizPortalData.businesses, _bizPortalData.deals);
+  } catch(e) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Failed to load. Please try again.</div>';
+  }
+}
+
+function renderBizDash(businesses, deals) {
+  const container = document.getElementById('biz-dashboard-content');
+
+  if (!businesses.length) {
+    document.getElementById('biz-title').textContent = 'Business Portal';
+    container.innerHTML = `
+      <div class="biz-no-biz">
+        <div class="biz-no-biz-icon">🏪</div>
+        <div class="biz-no-biz-title">No business yet</div>
+        <div class="biz-no-biz-sub">Register your business to start creating deals and reaching nearby customers.</div>
+        <button class="sheet-submit-btn" style="max-width:280px;margin:0 auto;" onclick="openBizRegister()">Register a Business</button>
+      </div>`;
+    return;
+  }
+
+  const biz = businesses[0];
+  document.getElementById('biz-title').textContent = biz.name;
+
+  const activeDealCount = deals.filter(d => d.active !== false).length;
+
+  const dealCards = deals.length
+    ? deals.map(d => {
+        const expiry   = d.expires_at ? new Date(d.expires_at) : null;
+        const daysLeft = expiry ? Math.ceil((expiry - Date.now()) / 86400000) : null;
+        const expiryStr = daysLeft !== null
+          ? (daysLeft <= 0 ? 'Expired' : daysLeft === 1 ? 'Expires tomorrow' : `${daysLeft} days left`)
+          : '';
+        const badge = d.discount_type === 'percent' ? `${d.discount_value}%`
+          : d.discount_type === 'fixed' ? `$${d.discount_value}`
+          : 'FREE';
+        const paused = d.active === false ? ' · Paused' : '';
+        return `<div class="biz-deal-card" id="deal-card-${d.id}">
+          <div class="biz-deal-emoji">${d.emoji || '🏷️'}</div>
+          <div class="biz-deal-body">
+            <div class="biz-deal-title">${d.title}</div>
+            <div class="biz-deal-meta">${expiryStr}${paused}</div>
+          </div>
+          <div class="biz-deal-badge">${badge}</div>
+          <button class="biz-deal-delete" onclick="deleteDealConfirm('${d.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+          </button>
+        </div>`;
+      }).join('')
+    : '<div class="biz-empty">No deals yet — create your first one below! 👇</div>';
+
+  container.innerHTML = `
+    <div class="biz-stats">
+      <div class="biz-stat-box">
+        <div class="biz-stat-label">Active Deals</div>
+        <div class="biz-stat-value">${activeDealCount}</div>
+      </div>
+      <div class="biz-stat-box">
+        <div class="biz-stat-label">Total Created</div>
+        <div class="biz-stat-value">${deals.length}</div>
+      </div>
     </div>
-  `;
-  list.prepend(card);
-}
-
-function createParticleBurst() {
-  const burst = document.getElementById('walkin-burst');
-  burst.innerHTML = '';
-
-  for (let i = 0; i < 12; i++) {
-    const particle = document.createElement('div');
-    particle.className = 'walkin-particle';
-    const angle = (i / 12) * Math.PI * 2;
-    const distance = 80;
-    const x = Math.cos(angle) * distance;
-    const y = Math.sin(angle) * distance;
-
-    particle.style.setProperty('--x', x + 'px');
-    particle.style.setProperty('--y', y + 'px');
-    particle.style.animation = `particleBurst 0.8s ease-out forwards`;
-    particle.style.left = '50%';
-    particle.style.top = '50%';
-    particle.style.transform = `translate(calc(-50% + var(--x)), calc(-50% + var(--y)))`;
-
-    burst.appendChild(particle);
-  }
-}
-
-function updateWalkinTimer() {
-  const elapsed = Date.now() - walkinStartTime;
-  const remaining = Math.max(0, 1800 - Math.floor(elapsed / 1000));
-  const mins = Math.floor(remaining / 60);
-  const secs = remaining % 60;
-
-  document.getElementById('walkin-timer').textContent = 
-    `${mins}:${secs.toString().padStart(2, '0')}`;
-
-  if (remaining === 0) {
-    clearInterval(walkinInterval);
-  }
-}
-
-function closeWalkIn() {
-  hideScreen('walkin');
-  clearInterva viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <div class="biz-dash-section-title">Your Deals</div>
+    ${dealCards}
+    <button class="biz-add-deal-btn" onclick="openAddDeal('${biz.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Create New Deal
     </button>`;
 }
@@ -6388,7 +6401,7 @@ function renderWallet() {
   if (amountEl) amountEl.innerHTML = `<span>$</span>${totalSaved}`;
   if (countEl)  countEl.textContent = cards.length;
 
-  // ── Sort ────────────────────────────────────────────────────────────────
+  // ── Sort ─────────────────────────────────────────────────────────────────
   if (walletSortMode === 'expiry') {
     cards.sort((a, b) => (a.deal.daysLeft ?? 999) - (b.deal.daysLeft ?? 999));
   } else if (walletSortMode === 'value') {
@@ -6418,11 +6431,11 @@ function renderWallet() {
 
     const card = document.createElement('div');
     card.className = 'wallet-deal-card';
+
     card.innerHTML = `
       <div class="wallet-deal-top">
         <div class="wallet-deal-icon">${getCategoryIcon(d.cat)}</div>
         <div class="wallet-deal-info">
-   
           <div class="wallet-deal-biz">${d.biz}</div>
           <div class="wallet-deal-offer">${d.desc}</div>
         </div>
