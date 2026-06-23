@@ -116,6 +116,71 @@ router.delete('/:id', requireBusiness, async (req, res) => {
   res.json({ deleted: rows[0].id });
 });
 
+// ── POST /api/businesses/verify-code  (owner — merchant types in consumer code) ─
+router.post('/verify-code', requireBusiness, async (req, res) => {
+  const code = (req.body.code || '').trim().toUpperCase();
+  if (!code) return res.status(400).json({ error: 'Please enter a code.' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows } = await client.query(
+      `SELECT rc.id, rc.deal_id, rc.user_id, rc.expires_at, rc.used_at,
+              d.title AS deal_title, d.emoji AS deal_emoji,
+              d.remaining_redemptions,
+              u.display_name AS customer_name, u.email AS customer_email
+       FROM redemption_codes rc
+       JOIN deals      d  ON rc.deal_id    = d.id
+       JOIN businesses b  ON d.business_id = b.id
+       JOIN users      u  ON rc.user_id    = u.id
+       WHERE rc.code = $1 AND b.owner_id = $2
+       FOR UPDATE OF rc`,
+      [code, req.user.sub]
+    );
+
+    const r = rows[0];
+    if (!r) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Code not found. Double-check and try again.' });
+    }
+    if (r.used_at) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'This code has already been used.' });
+    }
+    if (new Date(r.expires_at) < new Date()) {
+      await client.query('ROLLBACK');
+      return res.status(410).json({ error: 'Code expired — customer needs to generate a new one.' });
+    }
+
+    await client.query('UPDATE redemption_codes SET used_at = NOW() WHERE id = $1', [r.id]);
+    await client.query(
+      'INSERT INTO redemptions (deal_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [r.deal_id, r.user_id]
+    );
+    if (r.remaining_redemptions !== null) {
+      await client.query(
+        'UPDATE deals SET remaining_redemptions = remaining_redemptions - 1 WHERE id = $1',
+        [r.deal_id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({
+      ok:       true,
+      deal:     { id: r.deal_id, title: r.deal_title, emoji: r.deal_emoji },
+      customer: { name: r.customer_name || 'Customer', email: r.customer_email },
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if (err.code === '23505') return res.status(409).json({ error: 'Already redeemed.' });
+    console.error('Verify code error:', err.message);
+    res.status(500).json({ error: 'Verification failed. Please try again.' });
+  } finally {
+    client.release();
+  }
+});
+
 // ── GET /api/businesses/analytics  (owner — macro funnel across all deals) ────
 // Query param: period = '7d' | '30d' | 'all'  (default 'all')
 router.get('/analytics', requireBusiness, async (req, res) => {

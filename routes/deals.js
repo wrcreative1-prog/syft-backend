@@ -315,6 +315,63 @@ router.delete('/:id/save', authenticate, async (req, res) => {
   res.json({ saved: false });
 });
 
+// ── POST /api/deals/:id/claim-code  (authenticated) ──────────────────────────
+// Consumer taps "I'm Here!" → server returns a 6-char code valid for 15 min.
+// Merchant types the code into their portal to verify and complete the redemption.
+router.post('/:id/claim-code', authenticate, async (req, res) => {
+  // Deal must be active and available
+  const { rows: dealRows } = await pool.query(
+    `SELECT id FROM deals
+     WHERE id = $1 AND active = TRUE AND expires_at > NOW()
+       AND (remaining_redemptions IS NULL OR remaining_redemptions > 0)`,
+    [req.params.id]
+  );
+  if (!dealRows[0]) {
+    return res.status(404).json({ error: 'Deal not found or no longer active.' });
+  }
+  // Can't get a code if already redeemed
+  const { rows: already } = await pool.query(
+    'SELECT id FROM redemptions WHERE deal_id = $1 AND user_id = $2',
+    [req.params.id, req.user.sub]
+  );
+  if (already[0]) {
+    return res.status(409).json({ error: 'You have already redeemed this deal.' });
+  }
+  // Re-use an existing live code if one exists
+  const { rows: live } = await pool.query(
+    `SELECT code, expires_at FROM redemption_codes
+     WHERE deal_id = $1 AND user_id = $2 AND used_at IS NULL AND expires_at > NOW()
+     ORDER BY expires_at DESC LIMIT 1`,
+    [req.params.id, req.user.sub]
+  );
+  if (live[0]) {
+    return res.json({ code: live[0].code, expiresAt: live[0].expires_at });
+  }
+  // Generate a unique 6-char code  (32^6 ≈ 1 B combinations)
+  const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code, attempts = 0;
+  do {
+    code = Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+    const { rows: clash } = await pool.query(
+      'SELECT id FROM redemption_codes WHERE code = $1 AND used_at IS NULL AND expires_at > NOW()',
+      [code]
+    );
+    if (!clash[0]) break;
+  } while (++attempts < 10);
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO redemption_codes (code, deal_id, user_id)
+       VALUES ($1, $2, $3) RETURNING code, expires_at`,
+      [code, req.params.id, req.user.sub]
+    );
+    res.json({ code: rows[0].code, expiresAt: rows[0].expires_at });
+  } catch (err) {
+    console.error('Claim code error:', err.message);
+    res.status(500).json({ error: 'Could not generate code.' });
+  }
+});
+
 // ── POST /api/deals/:id/event  (optional auth — seen / opened) ────────────────
 // Fired by consumer app: { type: 'seen' | 'opened' }
 // Deduplication is handled client-side (session set); server is append-only.

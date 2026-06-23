@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Syft for Business</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
@@ -1025,6 +1024,10 @@ body {
         Deals
         <span class="num" id="sidebar-deals-count" style="margin-left:auto;font-size:12px;background:var(--amber-pale);color:var(--amber-deep);padding:1px 7px;border-radius:20px;font-weight:700;"></span>
       </button>
+      <button class="sidebar-nav-item" id="nav-verify" onclick="switchSection('verify')" style="color:var(--amber-deep);font-weight:700;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Verify Code
+      </button>
       <button class="sidebar-nav-item" id="nav-analytics" onclick="switchSection('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         Analytics
@@ -1091,6 +1094,62 @@ body {
           </button>
         </div>
         <div id="deals-container"></div>
+      </div>
+
+      <!-- VERIFY REDEMPTION SECTION -->
+      <div id="section-verify" class="page-section">
+        <div class="section-header" style="margin-bottom:32px;">
+          <div>
+            <h1 class="h1">Verify Redemption</h1>
+            <p style="color:var(--muted);margin-top:4px;font-size:15px;">Customer taps "I'm Here!" in the app — enter the 6-character code they're shown.</p>
+          </div>
+        </div>
+
+        <div style="max-width:480px;">
+          <!-- Code entry card -->
+          <div style="background:white;border:1px solid var(--border);border-radius:20px;padding:32px;box-shadow:0 2px 12px rgba(245,158,11,0.06);">
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Customer Code</div>
+            <input
+              id="verify-code-input"
+              type="text"
+              maxlength="6"
+              autocomplete="off"
+              autocorrect="off"
+              spellcheck="false"
+              placeholder="A3X7K2"
+              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+              onkeydown="if(event.key==='Enter')submitVerifyCode()"
+              style="
+                width:100%;font-family:'Space Grotesk',sans-serif;font-size:40px;
+                font-weight:700;letter-spacing:0.22em;text-align:center;
+                border:2px solid var(--border);border-radius:14px;
+                padding:18px 12px;color:var(--text);background:var(--cream);
+                outline:none;transition:border-color .15s;
+              "
+              onfocus="this.style.borderColor='var(--amber)'"
+              onblur="this.style.borderColor='var(--border)'"
+            >
+            <button
+              onclick="submitVerifyCode()"
+              id="verify-submit-btn"
+              style="
+                width:100%;margin-top:16px;padding:16px;border-radius:14px;border:none;
+                background:var(--amber);color:white;font-family:'Plus Jakarta Sans',sans-serif;
+                font-size:16px;font-weight:700;cursor:pointer;transition:opacity .15s;
+              ">
+              Verify &amp; Redeem
+            </button>
+          </div>
+
+          <!-- Result area -->
+          <div id="verify-result" style="margin-top:20px;display:none;"></div>
+
+          <!-- Recent verifications -->
+          <div id="verify-history" style="margin-top:28px;display:none;">
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;">Recent</div>
+            <div id="verify-history-list"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ANALYTICS SECTION -->
@@ -1707,14 +1766,7 @@ function dealRow(d) {
       <button class="btn-icon${isPaused ? ' pause-active' : ''}" onclick="toggleDeal('${d.id}', event)" title="${pauseTitle}">
         ${pauseIcon}
       </button>` : ''}
-      <button class="btn-icon" onclick="showQRModal('${d.id}','${escHtml(d.title).replace(/'/g,"\\'")}','${d.emoji||'🏷️'}',event)" title="Show QR code" style="color:var(--amber-deep);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="5" y="5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="16" y="5" width="3" height="3" fill="currentColor" stroke="none"/><rect x="5" y="16" width="3" height="3" fill="currentColor" stroke="none"/>
-          <path d="M14 14h2v2h-2zM16 16h2v2h-2zM14 18h2v2h-2zM18 14h2v2h-2zM18 18h2v2h-2z" fill="currentColor" stroke="none"/>
-        </svg>
-      </button>
-      <button class="btn-delete" onclick="deleteDeal('${d.id}', event)" title="Delete">
+<button class="btn-delete" onclick="deleteDeal('${d.id}', event)" title="Delete">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>
       </button>
     </td>
@@ -1723,11 +1775,86 @@ function dealRow(d) {
 
 // ── Sidebar navigation ────────────────────────────────────────────────────────
 function switchSection(name) {
-  ['overview','deals','analytics'].forEach(s => {
+  ['overview','deals','verify','analytics'].forEach(s => {
     document.getElementById('section-' + s).classList.toggle('active', s === name);
     document.getElementById('nav-' + s)?.classList.toggle('active', s === name);
   });
   if (name === 'analytics') loadMacroAnalytics();
+  if (name === 'verify') setTimeout(() => document.getElementById('verify-code-input').focus(), 80);
+}
+
+// ── Verify Redemption ─────────────────────────────────────────────────────────
+const _verifyHistory = [];
+
+async function submitVerifyCode() {
+  const input = document.getElementById('verify-code-input');
+  const code  = input.value.trim().toUpperCase();
+  if (code.length < 4) { input.focus(); return; }
+
+  const btn = document.getElementById('verify-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+
+  const resultEl = document.getElementById('verify-result');
+  resultEl.style.display = 'none';
+
+  try {
+    const res = await api('/api/businesses/verify-code', { method: 'POST', body: JSON.stringify({ code }) });
+
+    if (res.ok) {
+      // Success
+      resultEl.innerHTML = `
+        <div style="
+          background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:16px;
+          padding:20px 24px;display:flex;gap:16px;align-items:flex-start;
+        ">
+          <div style="font-size:28px;line-height:1;">✅</div>
+          <div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:#15803D;">Redeemed!</div>
+            <div style="font-size:14px;color:#166534;margin-top:2px;">${escHtml(res.deal.emoji)} ${escHtml(res.deal.title)}</div>
+            <div style="font-size:13px;color:#16A34A;margin-top:4px;">👤 ${escHtml(res.customer.name)}</div>
+          </div>
+        </div>`;
+      input.value = '';
+      // Add to history
+      _verifyHistory.unshift({ code, deal: res.deal, customer: res.customer, at: new Date() });
+      renderVerifyHistory();
+    } else {
+      resultEl.innerHTML = `
+        <div style="
+          background:var(--danger-pale);border:1.5px solid #FECACA;border-radius:16px;
+          padding:20px 24px;display:flex;gap:16px;align-items:flex-start;
+        ">
+          <div style="font-size:28px;line-height:1;">❌</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:600;color:var(--danger);">${escHtml(res.error || 'Verification failed.')}</div>
+        </div>`;
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<div style="color:var(--danger);padding:12px;font-size:14px;">Could not connect. Check your connection and try again.</div>`;
+  }
+
+  resultEl.style.display = 'block';
+  btn.disabled = false;
+  btn.textContent = 'Verify & Redeem';
+}
+
+function renderVerifyHistory() {
+  if (!_verifyHistory.length) return;
+  const container = document.getElementById('verify-history');
+  const list      = document.getElementById('verify-history-list');
+  container.style.display = 'block';
+  list.innerHTML = _verifyHistory.slice(0, 5).map(v => `
+    <div style="
+      background:white;border:1px solid var(--border);border-radius:12px;
+      padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;
+    ">
+      <div style="font-size:22px;">${escHtml(v.deal.emoji)}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(v.deal.title)}</div>
+        <div style="font-size:12px;color:var(--muted);">${escHtml(v.customer.name)} · ${v.at.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--amber-deep);letter-spacing:0.1em;">${v.code}</div>
+    </div>`).join('');
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
@@ -2125,32 +2252,6 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── QR Code modal ─────────────────────────────────────────────────────────────
-function showQRModal(dealId, title, emoji, e) {
-  if (e) e.stopPropagation();
-  document.getElementById('qr-modal-emoji').textContent = emoji;
-  document.getElementById('qr-modal-title').textContent  = title;
-
-  const wrap = document.getElementById('qr-canvas-wrap');
-  wrap.innerHTML = '';
-  const url = `https://syft-backend-production.up.railway.app/app?redeem=${dealId}`;
-  new QRCode(wrap, {
-    text:           url,
-    width:          200,
-    height:         200,
-    colorDark:      '#1C0A00',
-    colorLight:     '#FAFAFA',
-    correctLevel:   QRCode.CorrectLevel.M,
-  });
-
-  document.getElementById('qr-modal-backdrop').style.display = 'flex';
-}
-
-function closeQRModal() {
-  document.getElementById('qr-modal-backdrop').style.display = 'none';
-  document.getElementById('qr-canvas-wrap').innerHTML = '';
-}
-
 // ── Boot ──────────────────────────────────────────────────────────────────────
 (function init() {
   if (loadSession()) {
@@ -2166,34 +2267,6 @@ function closeQRModal() {
 })();
 </script>
 
-<!-- QR CODE MODAL -->
-<div id="qr-modal-backdrop" onclick="if(event.target===this)closeQRModal()" style="
-  position:fixed;inset:0;background:rgba(28,10,0,0.55);
-  z-index:900;display:none;align-items:center;justify-content:center;
-">
-  <div style="
-    background:white;border-radius:24px;padding:32px 28px 28px;
-    text-align:center;max-width:320px;width:90%;
-    box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative;
-  ">
-    <button onclick="closeQRModal()" style="
-      position:absolute;top:14px;right:14px;background:none;border:none;
-      cursor:pointer;color:var(--muted);padding:6px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-    ">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-    <div id="qr-modal-emoji" style="font-size:40px;line-height:1;margin-bottom:8px;"></div>
-    <div id="qr-modal-title" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:700;color:var(--text);margin-bottom:4px;"></div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;">Customer scans this to redeem</div>
-    <div id="qr-canvas-wrap" style="
-      display:flex;justify-content:center;align-items:center;
-      padding:16px;background:#FAFAFA;border-radius:16px;
-      border:1px solid var(--border);min-height:232px;margin-bottom:12px;
-    "></div>
-    <div style="font-size:11px;color:var(--muted);">Scan with Syft app camera</div>
-  </div>
-</div>
 
 </body>
 </html>

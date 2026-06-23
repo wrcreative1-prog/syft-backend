@@ -125,3 +125,19 @@ CREATE TABLE IF NOT EXISTS deal_ratings (
   UNIQUE (deal_id, user_id)
 );
 CREATE INDEX IF NOT EXISTS deal_ratings_deal_idx ON deal_ratings (deal_id);
+
+-- ── Redemption codes ──────────────────────────────────────────────────────────
+-- Consumer calls /claim-code → gets a 6-char code to show the merchant.
+-- Merchant types it into their portal → server marks it used + records redemption.
+-- Format: 6 uppercase chars from unambiguous alphabet (no 0/O/1/I/L).
+CREATE TABLE IF NOT EXISTS redemption_codes (
+  id         UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  code       TEXT        NOT NULL UNIQUE,
+  deal_id    UUID        NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '15 minutes',
+  used_at    TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS redemption_codes_code_idx      ON redemption_codes (code) WHERE used_at IS NULL;
+CREATE INDEX IF NOT EXISTS redemption_codes_user_deal_idx ON redemption_codes (user_id, deal_id);

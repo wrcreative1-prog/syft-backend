@@ -3036,37 +3036,7 @@ body {
 }
 
 
-/* ── QR Scanner ───────────────────────────────────────────────────────────── */
-@keyframes qr-scan-line {
-  0%   { top: 8px; opacity: 1; }
-  48%  { opacity: 1; }
-  50%  { top: 234px; opacity: 0; }
-  51%  { top: 8px; opacity: 0; }
-  52%  { opacity: 1; }
-  100% { top: 8px; opacity: 1; }
-}
-
-.qr-scan-btn {
-  background: rgba(255,255,255,0.18);
-  border: 1.5px solid rgba(255,255,255,0.35);
-  border-radius: 12px;
-  padding: 7px 12px 7px 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: white;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.qr-scan-btn svg { width: 17px; height: 17px; stroke: white; }
-
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
 
 </head>
 
@@ -3257,19 +3227,9 @@ body {
         <div class="map-greeting" id="map-greeting">Hello, William</div>
         <div class="map-title" id="map-title">Finding deals for you</div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="qr-scan-btn" onclick="openQRScanner()" title="Scan merchant QR code">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="5" y="5" width="3" height="3" fill="white" stroke="none"/><rect x="16" y="5" width="3" height="3" fill="white" stroke="none"/><rect x="5" y="16" width="3" height="3" fill="white" stroke="none"/>
-            <path d="M14 14h2v2h-2zM16 16h2v2h-2zM14 18h2v2h-2zM18 14h2v2h-2zM18 18h2v2h-2z" fill="white" stroke="none"/>
-          </svg>
-          Scan
-        </button>
-        <div class="map-gps-pill" id="map-gps-pill">
-          <div class="map-gps-dot" id="map-gps-dot"></div>
-          <span id="map-gps-text">Locating...</span>
-        </div>
+      <div class="map-gps-pill" id="map-gps-pill">
+        <div class="map-gps-dot" id="map-gps-dot"></div>
+        <span id="map-gps-text">Locating...</span>
       </div>
     </div>
 
@@ -3350,12 +3310,6 @@ body {
 
       <div class="deal-detail-buttons">
         <button class="btn-primary" onclick="initiateWalkIn()">I'm Here! Claim Deal</button>
-        <button class="btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:8px;" onclick="openQRScanner()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 7V1h-6M1 17v6h6M23 17v6h-6M1 7V1h6"/>
-          </svg>
-          Scan QR to Redeem
-        </button>
         <button class="btn-secondary" onclick="saveDeal()">Save for Later</button>
       </div>
     </div>
@@ -3426,56 +3380,6 @@ body {
         font-size:14px;color:#92400E;cursor:pointer;
       ">Skip</button>
     </div>
-  </div>
-
-  <!-- QR SCANNER OVERLAY -->
-  <div id="qr-scanner-overlay" style="
-    position:fixed;inset:0;background:#000;z-index:700;
-    display:none;flex-direction:column;align-items:center;justify-content:center;
-  ">
-    <video id="qr-video" playsinline autoplay muted style="
-      position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.75;
-    "></video>
-    <canvas id="qr-canvas" style="display:none;"></canvas>
-
-    <!-- Darkened corners with clear scan window -->
-    <div style="position:absolute;inset:0;pointer-events:none;">
-      <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);
-        -webkit-mask:path('M0 0 L100% 0 L100% 100% L0 100% Z, M50% 50% m-130 -130 l260 0 l0 260 l-260 0 Z');
-        mask:path('M0 0 L100% 0 L100% 100% L0 100% Z, M50% 50% m-130 -130 l260 0 l0 260 l-260 0 Z');
-      "></div>
-    </div>
-
-    <!-- Scan frame corners -->
-    <div style="position:relative;z-index:2;width:260px;height:260px;">
-      <div style="position:absolute;top:0;left:0;width:44px;height:44px;border-top:3px solid #F59E0B;border-left:3px solid #F59E0B;border-radius:4px 0 0 0;"></div>
-      <div style="position:absolute;top:0;right:0;width:44px;height:44px;border-top:3px solid #F59E0B;border-right:3px solid #F59E0B;border-radius:0 4px 0 0;"></div>
-      <div style="position:absolute;bottom:0;left:0;width:44px;height:44px;border-bottom:3px solid #F59E0B;border-left:3px solid #F59E0B;border-radius:0 0 0 4px;"></div>
-      <div style="position:absolute;bottom:0;right:0;width:44px;height:44px;border-bottom:3px solid #F59E0B;border-right:3px solid #F59E0B;border-radius:0 0 4px 0;"></div>
-      <!-- Scanning line -->
-      <div id="qr-scan-line" style="
-        position:absolute;left:0;right:0;height:2px;
-        background:linear-gradient(90deg,transparent 0%,#F59E0B 40%,#FCD34D 50%,#F59E0B 60%,transparent 100%);
-        box-shadow:0 0 8px rgba(245,158,11,0.8);
-        animation:qr-scan-line 2s ease-in-out infinite;
-      "></div>
-    </div>
-
-    <div id="qr-scan-status" style="
-      position:relative;z-index:2;margin-top:28px;
-      color:rgba(255,255,255,0.9);font-family:'DM Sans',sans-serif;
-      font-size:15px;text-align:center;padding:0 40px;line-height:1.5;
-    ">Point camera at the merchant's QR code</div>
-
-    <!-- Close button -->
-    <button onclick="closeQRScanner()" style="
-      position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;
-      background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);
-      border-radius:50%;width:44px;height:44px;
-      display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;
-    ">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
   </div>
 
   <!-- BUSINESS DASHBOARD -->
@@ -5970,28 +5874,36 @@ async function initiateWalkIn() {
   walkinInterval  = setInterval(updateWalkinTimer, 100);
   triggerNotification('success');
 
-  // ── Firebase redemption ────────────────────────────────────────────────
-  if (FIREBASE_ENABLED && window.SyftDeals && deal._firestoreId) {
+  // ── Claim redemption code from server ────────────────────────────────────
+  const _token = localStorage.getItem('syft_token');
+  if (_token && deal._firestoreId) {
     try {
-      const result = await SyftDeals.redeemDeal(deal._firestoreId);
-      // Show real code
+      const resp = await fetch(
+        'https://syft-backend-production.up.railway.app/api/deals/' + deal._firestoreId + '/claim-code',
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token } }
+      );
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
       codeEl.textContent     = result.code;
       codeWrap.style.display = 'block';
-      // Override timer to match server expiry (15 min)
-      walkinStartTime = Date.now() - (30 * 60 - 15 * 60) * 1000;
-      // Log to alerts
+      // Timer: codes expire in 15 min — start countdown at 15:00
+      walkinStartTime = Date.now() - 900000;
       addRedemptionAlert(deal, result.code);
     } catch (err) {
-      // Show friendly error but keep walk-in screen up
-      const msg = err.message || 'Could not generate code — please try again.';
-      codeEl.textContent     = msg.length < 20 ? msg : 'ERROR';
+      const msg = err.message || '';
+      if (msg.includes('already redeemed')) {
+        codeEl.textContent = 'USED';
+        document.getElementById('walkin-subtitle').textContent = 'Already redeemed — show this to staff';
+      } else {
+        codeEl.textContent = 'ERROR';
+        console.error('Claim code error:', err);
+      }
       codeWrap.style.display = 'block';
-      console.error('Redeem error:', err);
     }
   } else {
-    // Demo mode — generate a random-looking code
-    const demoCode = Math.random().toString(36).slice(2, 6).toUpperCase() +
-                     Math.random().toString(36).slice(2, 6).toUpperCase();
+    // Demo / not signed in — show a plausible-looking code
+    const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    const demoCode = Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
     codeEl.textContent     = demoCode;
     codeWrap.style.display = 'block';
   }
@@ -6985,157 +6897,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-
-// ── QR Scanner ────────────────────────────────────────────────────────────────
-let _qrStream      = null;
-let _qrAnimFrame   = null;
-let _qrProcessing  = false;
-
-async function openQRScanner() {
-  triggerHaptic('light');
-  const overlay = document.getElementById('qr-scanner-overlay');
-  overlay.style.display = 'flex';
-  document.getElementById('qr-scan-status').textContent = 'Point camera at the merchant\'s QR code';
-  _qrProcessing = false;
-
-  try {
-    _qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-    });
-    const video = document.getElementById('qr-video');
-    video.srcObject = _qrStream;
-    video.play();
-    video.addEventListener('loadedmetadata', () => { _scanQRFrame(); }, { once: true });
-  } catch (err) {
-    document.getElementById('qr-scan-status').textContent = 'Camera access denied. Please allow camera in settings.';
-    console.error('Camera error:', err);
-  }
-}
-
-function closeQRScanner() {
-  if (_qrStream) { _qrStream.getTracks().forEach(t => t.stop()); _qrStream = null; }
-  if (_qrAnimFrame) { cancelAnimationFrame(_qrAnimFrame); _qrAnimFrame = null; }
-  document.getElementById('qr-video').srcObject = null;
-  document.getElementById('qr-scanner-overlay').style.display = 'none';
-  _qrProcessing = false;
-}
-
-function _scanQRFrame() {
-  const video  = document.getElementById('qr-video');
-  const canvas = document.getElementById('qr-canvas');
-  if (!_qrStream || video.readyState < 2) {
-    _qrAnimFrame = requestAnimationFrame(_scanQRFrame);
-    return;
-  }
-  canvas.width  = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-  if (code && !_qrProcessing) {
-    _handleQRResult(code.data);
-  } else {
-    _qrAnimFrame = requestAnimationFrame(_scanQRFrame);
-  }
-}
-
-async function _handleQRResult(scannedText) {
-  _qrProcessing = true;
-  triggerHaptic('medium');
-
-  // Parse deal ID from URL: .../app?redeem=DEAL_ID
-  let dealId = null;
-  try {
-    const url    = new URL(scannedText);
-    dealId = url.searchParams.get('redeem');
-  } catch (_) {
-    // Maybe it's just a raw UUID
-    if (/^[0-9a-f-]{36}$/.test(scannedText.trim())) dealId = scannedText.trim();
-  }
-
-  if (!dealId) {
-    document.getElementById('qr-scan-status').textContent = 'Not a Syft QR code. Try again.';
-    setTimeout(() => { _qrProcessing = false; _scanQRFrame(); }, 2000);
-    return;
-  }
-
-  document.getElementById('qr-scan-status').textContent = 'Found! Processing…';
-  document.getElementById('qr-scan-line').style.animationPlayState = 'paused';
-
-  const token = localStorage.getItem('syft_token');
-  if (!token) {
-    closeQRScanner();
-    showToastMsg('Sign in to redeem deals');
-    return;
-  }
-
-  try {
-    // Fetch deal info (public endpoint, no auth needed)
-    const BASE_URL = 'https://syft-backend-production.up.railway.app';
-    const dealData = await fetch(`${BASE_URL}/api/deals/${dealId}`).then(r => r.json());
-    if (dealData.error) throw new Error(dealData.error);
-
-    // Call redeem endpoint via SyftDeals (handles auth header)
-    const result = await window.SyftDeals.redeemDeal(dealId);
-    if (result && result.error) throw new Error(result.error);
-
-    closeQRScanner();
-
-    // Show success walk-in screen
-    const deal = {
-      _firestoreId: dealId,
-      biz:   dealData.business_name || 'the merchant',
-      badge: dealData.title,
-      cat:   dealData.category || 'other',
-      offer: dealData.description || '',
-    };
-    // Store as currentDeal for rating sheet
-    const tempKey = '__qr_' + dealId;
-
-    document.getElementById('walkin-icon').innerHTML    = getCategoryIcon(deal.cat);
-    document.getElementById('walkin-title').textContent  = deal.badge || 'Deal Redeemed!';
-    document.getElementById('walkin-subtitle').textContent = `Redeemed at ${deal.biz}`;
-    document.getElementById('walkin-code-wrap').style.display = 'none';
-
-    showScreen('walkin');
-    createParticleBurst();
-    triggerHaptic('success');
-    triggerNotification('success');
-
-    walkinStartTime = Date.now();
-    walkinInterval  = setInterval(updateWalkinTimer, 100);
-
-    // Register deal so closeWalkIn() can offer the rating sheet
-    currentDeal = tempKey;
-    getActiveDeals()[tempKey] = deal;
-
-  } catch (err) {
-    closeQRScanner();
-    const msg = err.message || 'Redemption failed';
-    showToastMsg(msg.includes('already redeemed') ? 'You\'ve already redeemed this deal' : msg);
-  }
-}
-
-function showToastMsg(msg) {
-  if (typeof showToast === 'function') { showToast(msg, 3000); return; }
-  alert(msg);
-}
-
-// ── Handle ?redeem=DEAL_ID deep link on load ──────────────────────────────────
-(function checkRedeemParam() {
-  const params = new URLSearchParams(window.location.search);
-  const dealId = params.get('redeem');
-  if (!dealId) return;
-  // Wait for app to initialise, then auto-open scanner pointed at this deal
-  window.addEventListener('load', () => {
-    setTimeout(async () => {
-      const token = localStorage.getItem('syft_token');
-      if (!token) { showToastMsg('Sign in to redeem this deal'); return; }
-      await _handleQRResult(`https://syft-backend-production.up.railway.app/app?redeem=${dealId}`);
-    }, 1200);
-  });
-})();
+// ── (QR scanner removed — replaced by server-generated redemption codes) ──────
 
 </script>
 
