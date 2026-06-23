@@ -116,6 +116,75 @@ router.delete('/:id', requireBusiness, async (req, res) => {
   res.json({ deleted: rows[0].id });
 });
 
+// ── POST /api/businesses/send-otp  (send SMS verification to merchant phone) ────
+// Uses Twilio Verify — gracefully no-ops when env vars aren't set (dev mode).
+router.post('/send-otp', requireBusiness, async (req, res) => {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_VERIFY_SID) {
+    return res.status(503).json({ error: 'Phone verification not configured on this server.' });
+  }
+  const digits = (req.body.phone || '').replace(/\D/g, '');
+  if (digits.length < 10) {
+    return res.status(400).json({ error: 'Enter a valid US phone number.' });
+  }
+  const e164 = '+1' + digits.slice(-10);
+
+  try {
+    const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    await twilio.verify.v2
+      .services(process.env.TWILIO_VERIFY_SID)
+      .verifications.create({ to: e164, channel: 'sms' });
+
+    // Store phone (unverified) so verify-otp can look it up
+    await pool.query(
+      `UPDATE businesses SET phone = $1, phone_verified = false WHERE owner_id = $2`,
+      [e164, req.user.sub]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Send OTP error:', err.message);
+    res.status(500).json({ error: 'Could not send code. Check the number and try again.' });
+  }
+});
+
+// ── POST /api/businesses/verify-otp  (check the SMS code, mark verified) ────────
+router.post('/verify-otp', requireBusiness, async (req, res) => {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_VERIFY_SID) {
+    return res.status(503).json({ error: 'Phone verification not configured on this server.' });
+  }
+  const code = (req.body.code || '').trim();
+  if (!code || code.length < 4) {
+    return res.status(400).json({ error: 'Enter the 6-digit code.' });
+  }
+
+  // Look up stored phone for this merchant
+  const { rows: bizRows } = await pool.query(
+    `SELECT phone FROM businesses WHERE owner_id = $1`, [req.user.sub]
+  );
+  const e164 = bizRows[0]?.phone;
+  if (!e164) {
+    return res.status(400).json({ error: 'No phone on file. Please send a code first.' });
+  }
+
+  try {
+    const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    const check = await twilio.verify.v2
+      .services(process.env.TWILIO_VERIFY_SID)
+      .verificationChecks.create({ to: e164, code });
+
+    if (check.status !== 'approved') {
+      return res.status(400).json({ error: 'Incorrect code — please try again.' });
+    }
+
+    await pool.query(
+      `UPDATE businesses SET phone_verified = true WHERE owner_id = $1`, [req.user.sub]
+    );
+    res.json({ ok: true, phone: e164 });
+  } catch (err) {
+    console.error('Verify OTP error:', err.message);
+    res.status(500).json({ error: 'Verification failed. Please try again.' });
+  }
+});
+
 // ── POST /api/businesses/verify-code  (owner — merchant types in consumer code) ─
 router.post('/verify-code', requireBusiness, async (req, res) => {
   const code = (req.body.code || '').trim().toUpperCase();

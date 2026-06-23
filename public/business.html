@@ -1053,6 +1053,17 @@ body {
           <!-- populated by renderPlanBadge() -->
         </div>
 
+        <!-- Phone verification banner — shown when phone_verified is false -->
+        <div id="phone-verify-banner" style="display:none;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:14px;padding:14px 18px;margin-bottom:20px;margin-top:4px;align-items:center;gap:12px;">
+          <div style="font-size:20px;flex-shrink:0;">📱</div>
+          <div style="flex:1;">
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:#92400E;">Verify your phone number</div>
+            <div style="font-size:13px;color:#B45309;margin-top:2px;">One-time SMS verification — keeps fake businesses off Syft.</div>
+          </div>
+          <button onclick="openPhoneVerifyModal()" style="background:var(--amber);color:white;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap;flex-shrink:0;">Verify Now →</button>
+        </div>
+        <div id="phone-verified-status"></div>
+
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-card-label">Active Deals</div>
@@ -1226,6 +1237,50 @@ body {
       </div><!-- /section-analytics -->
 
     </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════ PHONE VERIFY MODAL ══════════════════════════════ -->
+<div id="phone-modal-backdrop" onclick="if(event.target===this)closePhoneVerifyModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:white;border-radius:20px;padding:36px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:20px;">📱 Verify Phone</div>
+      <button onclick="closePhoneVerifyModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;">✕</button>
+    </div>
+
+    <!-- Step 1: Enter phone -->
+    <div id="phone-step-1">
+      <p style="font-size:14px;color:var(--muted);margin-bottom:20px;margin-top:4px;line-height:1.5;">We'll text a 6-digit code to your business phone. This confirms you're a real business owner.</p>
+      <div class="field">
+        <div class="field-label">Your mobile number</div>
+        <input id="phone-input" class="field-input" type="tel" placeholder="(555) 000-0000" autocomplete="tel" onkeydown="if(event.key==='Enter')sendOtp()">
+      </div>
+      <div id="phone-send-error" class="form-error"></div>
+      <button id="phone-send-btn" class="btn-primary" onclick="sendOtp()">Send Code →</button>
+    </div>
+
+    <!-- Step 2: Enter OTP -->
+    <div id="phone-step-2" style="display:none;">
+      <p style="font-size:14px;color:var(--muted);margin-top:4px;margin-bottom:4px;">Code sent to</p>
+      <p id="phone-display" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px;color:var(--text);margin-bottom:20px;"></p>
+      <div class="field">
+        <div class="field-label">6-digit code</div>
+        <input
+          id="otp-input"
+          class="field-input"
+          type="text"
+          maxlength="6"
+          placeholder="000000"
+          autocomplete="one-time-code"
+          oninput="this.value=this.value.replace(/\D/g,'')"
+          onkeydown="if(event.key==='Enter')verifyOtp()"
+          style="text-align:center;font-size:28px;font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:0.18em;"
+        >
+      </div>
+      <div id="phone-verify-error" class="form-error"></div>
+      <button id="phone-verify-btn" class="btn-primary" onclick="verifyOtp()">Verify →</button>
+      <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px;cursor:pointer;" onclick="backToPhoneStep1()">← Change number</p>
+    </div>
   </div>
 </div>
 
@@ -1604,6 +1659,7 @@ async function loadDashData() {
 
     renderStats();
     renderPlanBadge();
+    renderPhoneVerifiedStatus();
     renderDealsTable();
     renderOverviewDeals();
     updateSidebarCount();
@@ -1855,6 +1911,101 @@ function renderVerifyHistory() {
       </div>
       <div style="font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--amber-deep);letter-spacing:0.1em;">${v.code}</div>
     </div>`).join('');
+}
+
+// ── Phone Verification ────────────────────────────────────────────────────────
+function openPhoneVerifyModal() {
+  const el = document.getElementById('phone-modal-backdrop');
+  el.style.display = 'flex';
+  setTimeout(() => document.getElementById('phone-input').focus(), 60);
+}
+
+function closePhoneVerifyModal() {
+  document.getElementById('phone-modal-backdrop').style.display = 'none';
+  // reset to step 1
+  document.getElementById('phone-step-1').style.display = '';
+  document.getElementById('phone-step-2').style.display = 'none';
+  document.getElementById('phone-send-error').classList.remove('show');
+  document.getElementById('phone-verify-error').classList.remove('show');
+  document.getElementById('phone-send-btn').disabled    = false;
+  document.getElementById('phone-send-btn').textContent = 'Send Code →';
+  document.getElementById('otp-input').value = '';
+}
+
+function backToPhoneStep1() {
+  document.getElementById('phone-step-2').style.display = 'none';
+  document.getElementById('phone-step-1').style.display = '';
+}
+
+async function sendOtp() {
+  const phone = document.getElementById('phone-input').value.trim();
+  const errEl = document.getElementById('phone-send-error');
+  const btn   = document.getElementById('phone-send-btn');
+
+  errEl.classList.remove('show');
+  if (!phone) { showError(errEl, 'Enter your phone number.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  const res = await api('/api/businesses/send-otp', {
+    method: 'POST', body: JSON.stringify({ phone })
+  });
+
+  if (res.error) {
+    showError(errEl, res.error);
+    btn.disabled = false;
+    btn.textContent = 'Send Code →';
+    return;
+  }
+
+  // Show step 2
+  document.getElementById('phone-step-1').style.display  = 'none';
+  document.getElementById('phone-step-2').style.display  = '';
+  document.getElementById('phone-display').textContent   = phone;
+  setTimeout(() => document.getElementById('otp-input').focus(), 60);
+}
+
+async function verifyOtp() {
+  const code  = document.getElementById('otp-input').value.trim();
+  const errEl = document.getElementById('phone-verify-error');
+  const btn   = document.getElementById('phone-verify-btn');
+
+  errEl.classList.remove('show');
+  if (code.length < 6) { showError(errEl, 'Enter the full 6-digit code.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+
+  const res = await api('/api/businesses/verify-otp', {
+    method: 'POST', body: JSON.stringify({ code })
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Verify →';
+
+  if (res.error) { showError(errEl, res.error); return; }
+
+  // ✓ Verified!
+  closePhoneVerifyModal();
+  if (_businesses[0]) _businesses[0].phone_verified = true;
+  renderPhoneVerifiedStatus();
+  showToast('Phone verified! You're good to go ✓');
+}
+
+function renderPhoneVerifiedStatus() {
+  const biz    = _businesses[0];
+  const banner = document.getElementById('phone-verify-banner');
+  const badge  = document.getElementById('phone-verified-status');
+  if (!banner || !badge) return;
+
+  if (biz && biz.phone_verified) {
+    banner.style.display = 'none';
+    badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;background:#dcfce7;color:#16a34a;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid #bbf7d0;margin-bottom:12px;">✓ Phone Verified</span>`;
+  } else {
+    banner.style.display = 'flex';
+    badge.innerHTML = '';
+  }
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

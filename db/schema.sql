@@ -44,6 +44,10 @@ ALTER TABLE businesses ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
 ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status    TEXT        NOT NULL DEFAULT 'inactive';
 -- subscription_status: 'active' | 'inactive' | 'past_due' | 'canceled'
 
+-- ── Merchant phone verification (Twilio Verify) ───────────────────────────────
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone          TEXT;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone_verified BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- ── Deals ─────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS deals (
   id                      UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
