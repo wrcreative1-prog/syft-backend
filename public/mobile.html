@@ -5008,8 +5008,8 @@ async function initLocation() {
     console.error('Geolocation error:', e);
     isLocating = false;
     updateGPSPill();
-    userLat = 37.7749;
-    userLng = -122.4194;
+    userLat = 39.6409;
+    userLng = -84.1555;
     updateUserMarker();
     renderDealMarkers();
   }
@@ -5695,7 +5695,7 @@ function initMap() {
 
   const mapContainer = document.getElementById('leaflet-map');
   leafletMap = L.map(mapContainer, {
-    center: [userLat || 37.7749, userLng || -122.4194],
+    center: [userLat || 39.6409, userLng || -84.1555],
     zoom: 16,
     minZoom: 13,
     maxZoom: 20,
