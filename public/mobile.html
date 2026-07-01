@@ -913,46 +913,72 @@ body {
   margin-bottom: 12px;
 }
 
-/* ── Filter bar: between greeting and map ── */
-.map-filter-bar {
+/* ── Search bar: between greeting and map ── */
+.map-search-bar {
   flex-shrink: 0;
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  padding: 10px 16px 10px;
+  padding: 10px 16px;
   background: var(--warm-white);
   border-bottom: 1px solid var(--border);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-.map-filter-bar::-webkit-scrollbar { display: none; }
 
-.filter-btn {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+.map-search-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
   background: white;
-  font-size: 13px;
-  font-weight: 600;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.map-search-inner:focus-within {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+}
+
+.map-search-icon {
+  width: 16px;
+  height: 16px;
+  margin-left: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+#map-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text);
-  white-space: nowrap;
+  padding: 10px 8px;
+  -webkit-appearance: none;
+}
+
+#map-search-input::placeholder {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* hide the browser's built-in ✕ on search inputs */
+#map-search-input::-webkit-search-cancel-button { display: none; }
+
+.map-search-clear {
+  display: none;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  color: var(--muted);
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  line-height: 1;
   flex-shrink: 0;
 }
 
-.filter-btn.active {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: white;
-  transform: scale(1.04);
-}
-
-.filter-btn:active {
-  transform: scale(0.98);
-}
+.map-search-clear.visible { display: block; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MAP MARKERS & PINS
@@ -3245,15 +3271,13 @@ body {
       </div>
     </div>
 
-    <!-- Category filter: between greeting and map -->
-    <div class="map-filter-bar">
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="food">🍕 Food</button>
-      <button class="filter-btn" data-filter="entertainment">🎭 Fun</button>
-      <button class="filter-btn" data-filter="fitness">💪 Fitness</button>
-      <button class="filter-btn" data-filter="beauty">💅 Beauty</button>
-      <button class="filter-btn" data-filter="shopping">🛍️ Shop</button>
-      <button class="filter-btn" data-filter="services">🔧 Services</button>
+    <!-- Search bar: replaces category pills -->
+    <div class="map-search-bar">
+      <div class="map-search-inner">
+        <svg class="map-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="map-search-input" placeholder="Search deals near you…" autocomplete="off" autocorrect="off" spellcheck="false" />
+        <button class="map-search-clear" id="map-search-clear" aria-label="Clear search">✕</button>
+      </div>
     </div>
 
     <div id="map-container">
@@ -4199,6 +4223,7 @@ let leafletMap = null;
 let dealMarkerMap = {};
 let userMarker = null;
 let activeFilter = 'all';
+let activeSearch  = '';
 let hasOnboarded = false;
 let isLocating = false;
 let locationWatchId = null;          // Capacitor watchPosition handle
@@ -4446,28 +4471,17 @@ const DEAL_OFFSETS = {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 function init() {
-  // Check if user has onboarded
-  hasOnboarded = localStorage.getItem('syft_onboarded') === 'true';
+  // Skip onboarding entirely — go straight to the map.
+  // Sign-up is only prompted when the user tries to claim or save a deal.
+  localStorage.setItem('syft_onboarded', 'true');
+  hasOnboarded = true;
 
-  if (!hasOnboarded) {
-    hideSplash();
-    showScreen('onboard');
-    initOnboarding();
-  } else {
-    hideSplash();
-    // If backend is active, require a valid token before loading the map
-    const hasToken = !!localStorage.getItem('syft_token');
-    if (FIREBASE_ENABLED && window.SyftAuth && !hasToken) {
-      showScreen('auth');
-      initAuth();
-    } else {
-      showScreen('map');
-      initLocation();
-      initMap();
-      initNotifications();
-      initWallet();
-    }
-  }
+  hideSplash();
+  showScreen('map');
+  initLocation();
+  initMap();
+  initNotifications();
+  initWallet();
 }
 
 function hideSplash() {
@@ -5748,6 +5762,21 @@ function renderDealMarkers() {
   // Score + rank so top picks render last (appear on top of map z-order)
   const filtered = SyftPrefs.rankDeals(getFilteredDeals()).reverse();
 
+  // Update sub-bar with search result count
+  const sub = document.getElementById('map-sub');
+  if (sub) {
+    const q = activeSearch.trim();
+    if (q) {
+      sub.textContent = filtered.length === 0
+        ? `No deals found for "${q}"`
+        : `${filtered.length} deal${filtered.length === 1 ? '' : 's'} for "${q}" · best value first`;
+    } else {
+      sub.textContent = filtered.length > 0
+        ? `${filtered.length} deals near you`
+        : 'No deals nearby';
+    }
+  }
+
   filtered.forEach(([key, d]) => {
     const off = DEAL_OFFSETS[key];
     if (!off) return;
@@ -5774,7 +5803,42 @@ function renderDealMarkers() {
 }
 
 function getFilteredDeals() {
-  return Object.entries(getActiveDeals()).filter(([k, d]) => activeFilter === 'all' || d.cat === activeFilter);
+  const q = activeSearch.trim().toLowerCase();
+  let entries = Object.entries(getActiveDeals());
+
+  if (q) {
+    entries = entries.filter(([k, d]) =>
+      (d.biz   || '').toLowerCase().includes(q) ||
+      (d.offer || d.title || '').toLowerCase().includes(q) ||
+      (d.desc  || '').toLowerCase().includes(q) ||
+      (d.cat   || '').toLowerCase().includes(q)
+    );
+    // Sort: best discount value first, then by proximity
+    entries.sort((a, b) => {
+      const vA = extractDiscountValue(a[1]);
+      const vB = extractDiscountValue(b[1]);
+      if (vB !== vA) return vB - vA;
+      return extractMiles(a[1].distShort) - extractMiles(b[1].distShort);
+    });
+  }
+  return entries;
+}
+
+// Extract numeric discount value from deal offer text (e.g. "30% off" → 30, "$20 off" → 20)
+function extractDiscountValue(deal) {
+  const text = (deal.offer || deal.title || '').toLowerCase();
+  const pct = text.match(/(\d+)\s*%/);
+  if (pct) return parseInt(pct[1]);
+  const dollar = text.match(/\$(\d+)/);
+  if (dollar) return parseInt(dollar[1]);
+  return 0;
+}
+
+// Extract numeric miles from distShort string (e.g. "0.4 mi" → 0.4)
+function extractMiles(distShort) {
+  if (!distShort) return 999;
+  const m = (distShort || '').match(/([\d.]+)/);
+  return m ? parseFloat(m[1]) : 999;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
@@ -5818,6 +5882,12 @@ function closeDeal() {
 }
 
 function saveDeal() {
+  // Prompt sign-up only when user tries to save — not before seeing the map
+  if (!localStorage.getItem('syft_token')) {
+    showToast('Sign in to save deals ✨');
+    setTimeout(() => { showScreen('auth'); initAuth(); }, 600);
+    return;
+  }
   triggerHaptic('medium');
   const deal = getActiveDeals()[currentDeal];
   if (!deal) return;
@@ -5865,6 +5935,12 @@ function removeFromWallet(dealKey) {
 }
 
 async function initiateWalkIn() {
+  // Prompt sign-up only when user tries to claim — not before seeing the map
+  if (!localStorage.getItem('syft_token')) {
+    showToast('Sign in to claim deals ✨');
+    setTimeout(() => { showScreen('auth'); initAuth(); }, 600);
+    return;
+  }
   triggerHaptic('medium');
   const deal = getActiveDeals()[currentDeal];
   // High-signal event: user is physically walking in — weight 5
@@ -6717,19 +6793,27 @@ function resetProfile() {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      triggerHaptic('light');
+  // Search bar — live filter + sort as user types
+  const searchInput = document.getElementById('map-search-input');
+  const searchClear = document.getElementById('map-search-clear');
 
-      // Update active state
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Update filter
-      activeFilter = btn.dataset.filter;
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      activeSearch = searchInput.value;
+      searchClear.classList.toggle('visible', activeSearch.length > 0);
       renderDealMarkers();
     });
-  });
+  }
+
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      activeSearch = '';
+      searchClear.classList.remove('visible');
+      searchInput.focus();
+      renderDealMarkers();
+    });
+  }
 
   // Start the app
   init();
