@@ -6,7 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Syft">
-<meta name="theme-color" content="#FFFBF0">
+<meta name="theme-color" content="#F59E0B">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <title>Syft — Deals Find You</title>
 
 <!-- ══════════════════════════════════════════════════════════════════
@@ -21,7 +23,17 @@
       isNativePlatform: () => false,
       Plugins: {
         Geolocation: {
-          getCurrentPosition: async () => ({ coords: { latitude: 40.7128, longitude: -74.0060 } }),
+          getCurrentPosition: (options) => new Promise((resolve, reject) => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                pos => resolve({ coords: { latitude: pos.coords.latitude, longitude: pos.coords.longitude } }),
+                err => reject(err),
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+              );
+            } else {
+              reject(new Error('Geolocation not supported'));
+            }
+          }),
           watchPosition: (options, callback) => {
             // Browser fallback: delegate to native watchPosition
             const id = navigator.geolocation
@@ -6899,6 +6911,15 @@ document.head.appendChild(style);
 
 // ── (QR scanner removed — replaced by server-generated redemption codes) ──────
 
+</script>
+
+<script>
+// ── PWA Service Worker registration ──────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 </script>
 
 </body>
