@@ -1026,6 +1026,26 @@ body {
   border-top-color: var(--amber);
 }
 
+/* Scarcity tag above map pins */
+.m-pin-scarce {
+  background: #EF4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+  text-align: center;
+  margin-bottom: 3px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  animation: pulse-scarce 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-scarce {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
 .user-marker {
   width: 20px;
   height: 20px;
@@ -3305,6 +3325,12 @@ body {
       <div id="deal-for-you-badge" class="for-you-badge" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         For You
+      </div>
+
+      <!-- Scarcity banner — shown when <= 5 redemptions remain -->
+      <div id="deal-scarcity-banner" style="display:none;background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:12px;padding:10px 14px;margin:0 0 12px;display:none;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#92400E;">
+        <span style="font-size:18px;">🔥</span>
+        <span id="deal-scarcity-text">Only 3 left — going fast!</span>
       </div>
 
       <div class="deal-detail-offer">
@@ -5785,8 +5811,9 @@ function renderDealMarkers() {
     const dealLng = userLng + off.dlng;
     const recommended = SyftPrefs.isForYou(key, d);
 
+    const scarceTag = d.scarce ? `<div class="m-pin-scarce">🔥 ${d.left} left</div>` : '';
     const icon = L.divIcon({
-      html: `<div class="m-pin-bubble${d.pinGold ? ' gold' : ''}">${d.pinLabel}</div><div class="m-pin-tail${d.pinGold ? ' gold' : ''}"></div>`,
+      html: `${scarceTag}<div class="m-pin-bubble${d.pinGold ? ' gold' : ''}">${d.pinLabel}</div><div class="m-pin-tail${d.pinGold ? ' gold' : ''}"></div>`,
       className: `map-deal-marker${recommended ? ' recommended' : ''}`,
       iconSize: null,
       iconAnchor: [24, 28]
@@ -5865,6 +5892,19 @@ function openDeal(key) {
   // ── Personalization: show "For You" badge if score is high ──
   const badge = document.getElementById('deal-for-you-badge');
   if (badge) badge.style.display = SyftPrefs.isForYou(key, deal) ? 'inline-flex' : 'none';
+
+  // ── Scarcity banner: show when ≤ 5 redemptions remain ──
+  const scarcityBanner = document.getElementById('deal-scarcity-banner');
+  const scarcityText   = document.getElementById('deal-scarcity-text');
+  if (scarcityBanner) {
+    if (deal.scarce && deal.left !== '∞') {
+      const n = parseInt(deal.left, 10);
+      scarcityText.textContent = n <= 1 ? 'Last one — claim it now!' : `Only ${n} left — going fast!`;
+      scarcityBanner.style.display = 'flex';
+    } else {
+      scarcityBanner.style.display = 'none';
+    }
+  }
 
   // ── Track view (lowest signal weight = 1) ──
   SyftPrefs.track('view', key, deal);
@@ -6579,6 +6619,7 @@ function mapApiDealToLocal(d) {
     daysLeft,
     numericValue: parseFloat(d.discountValue) || 0,
     left:         d.remainingRedemptions != null ? String(d.remainingRedemptions) : '∞',
+    scarce:       d.remainingRedemptions != null && d.remainingRedemptions <= 5,
     rating:       '4.5★',
     source:       'Syft',
     sourceClass:  'syft',
