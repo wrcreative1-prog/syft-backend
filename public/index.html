@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Syft — Local deals worth walking to</title>
+  <meta name="description" content="Real deals at businesses near you, right now. Walk in and save.">
+  <meta name="theme-color" content="#F59E0B">
+  <link rel="icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber:      #F59E0B;
+      --amber-deep: #92400E;
+      --amber-light:#FEF3C7;
+      --warm-white: #FFFBF0;
+      --text:       #1C0A00;
+      --muted:      #78716C;
+      --border:     #F5E6C8;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--warm-white);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .nav-logo {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 24px;
+      font-weight: 900;
+      color: var(--amber);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .nav-link {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .nav-link:hover { color: var(--text); }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      padding: 9px 20px;
+      background: var(--amber);
+      color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .nav-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--amber-light);
+      color: var(--amber-deep);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 28px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(42px, 8vw, 72px);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+
+    .hero-title span { color: var(--amber); }
+
+    .hero-sub {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto 40px;
+      font-weight: 400;
+    }
+
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 32px;
+      background: var(--amber);
+      color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.15s;
+      box-shadow: 0 4px 24px rgba(245,158,11,0.35);
+    }
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-2px); }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 32px;
+      background: white;
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      text-decoration: none;
+      border: 2px solid var(--border);
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--amber); transform: translateY(-2px); }
+
+    /* ── MAP MOCKUP ── */
+    .map-mockup {
+      max-width: 900px;
+      margin: 60px auto 0;
+      padding: 0 24px;
+      position: relative;
+    }
+
+    .map-frame {
+      background: #E8F4E8;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(28,10,0,0.12);
+      border: 1.5px solid var(--border);
+      aspect-ratio: 16/7;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* SVG street grid */
+    .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.5; }
+
+    /* deal pins */
+    .pin {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      animation: float 3s ease-in-out infinite;
+    }
+    .pin:nth-child(2) { animation-delay: 0.5s; }
+    .pin:nth-child(3) { animation-delay: 1s; }
+    .pin:nth-child(4) { animation-delay: 1.5s; }
+    .pin:nth-child(5) { animation-delay: 2s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-4px); }
+    }
+
+    .pin-bubble {
+      background: var(--amber);
+      color: white;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(245,158,11,0.4);
+    }
+
+    .pin-bubble.white {
+      background: white;
+      color: var(--amber);
+      border: 2px solid var(--amber);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .pin-bubble.scarce {
+      background: #EF4444;
+      box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+    }
+
+    .pin-tail {
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 7px solid var(--amber);
+      margin-top: -1px;
+    }
+    .pin-tail.white { border-top-color: white; }
+    .pin-tail.scarce { border-top-color: #EF4444; }
+
+    .user-dot {
+      position: absolute;
+      width: 18px; height: 18px;
+      background: var(--amber);
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(245,158,11,0.5), 0 0 0 6px rgba(245,158,11,0.15);
+    }
+
+    /* ── HOW IT WORKS ── */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 100px 24px;
+    }
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 60px;
+      max-width: 480px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+    }
+
+    .step {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      position: relative;
+    }
+
+    .step-num {
+      width: 36px; height: 36px;
+      background: var(--amber-light);
+      color: var(--amber-deep);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 900;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .step-icon { font-size: 28px; margin-bottom: 16px; }
+
+    .step h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── MERCHANT BAND ── */
+    .merchant-band {
+      background: var(--text);
+      color: white;
+      padding: 80px 24px;
+    }
+
+    .merchant-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    @media (max-width: 700px) {
+      .merchant-inner { grid-template-columns: 1fr; gap: 40px; }
+      nav { padding: 16px 20px; }
+      .nav-links { gap: 12px; }
+    }
+
+    .merchant-band .section-label { color: var(--amber); }
+
+    .merchant-band .section-title {
+      color: white;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    .merchant-band p {
+      color: rgba(255,255,255,0.65);
+      font-size: 16px;
+      line-height: 1.65;
+      margin-bottom: 36px;
+    }
+
+    .merchant-perks {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .perk {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .perk-icon {
+      width: 36px; height: 36px;
+      background: rgba(245,158,11,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .perk-text strong {
+      display: block;
+      font-weight: 700;
+      font-size: 14px;
+      color: white;
+      margin-bottom: 2px;
+    }
+
+    .perk-text span {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.5;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 40px 24px;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer strong {
+      color: var(--amber);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">Syft</a>
+    <div class="nav-links">
+      <a href="#how-it-works" class="nav-link">How it works</a>
+      <a href="#merchants" class="nav-link">For merchants</a>
+      <a href="/business" class="nav-btn">List your business</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">
+      📍 Deals worth walking to
+    </div>
+    <h1 class="hero-title">
+      Local deals.<br>
+      <span>Right now.</span><br>
+      Near you.
+    </h1>
+    <p class="hero-sub">
+      Real discounts at real businesses within walking distance. No printing. No vouchers. Just show up and save.
+    </p>
+    <div class="hero-ctas">
+      <a href="/app" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Find deals near me
+      </a>
+      <a href="/business" class="btn-secondary">
+        I'm a merchant →
+      </a>
+    </div>
+  </section>
+
+  <!-- MAP MOCKUP -->
+  <div class="map-mockup">
+    <div class="map-frame">
+      <!-- Street grid SVG -->
+      <svg class="map-svg" viewBox="0 0 900 400" preserveAspectRatio="xMidYMid slice">
+        <rect width="900" height="400" fill="#E8F0E8"/>
+        <!-- horizontal streets -->
+        <rect x="0" y="80"  width="900" height="18" fill="#D4E8D4" rx="0"/>
+        <rect x="0" y="180" width="900" height="14" fill="#D4E8D4" rx="0"/>
+        <rect x="0" y="280" width="900" height="22" fill="#D4E8D4" rx="0"/>
+        <rect x="0" y="350" width="900" height="12" fill="#D4E8D4" rx="0"/>
+        <!-- vertical streets -->
+        <rect x="120" y="0" width="14" height="400" fill="#D4E8D4" rx="0"/>
+        <rect x="280" y="0" width="18" height="400" fill="#D4E8D4" rx="0"/>
+        <rect x="480" y="0" width="14" height="400" fill="#D4E8D4" rx="0"/>
+        <rect x="660" y="0" width="20" height="400" fill="#D4E8D4" rx="0"/>
+        <rect x="800" y="0" width="12" height="400" fill="#D4E8D4" rx="0"/>
+        <!-- blocks -->
+        <rect x="140" y="100" width="128" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="140" y="200" width="128" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="300" y="100" width="168" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="300" y="200" width="168" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="500" y="100" width="148" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="500" y="200" width="148" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="682" y="100" width="106" height="72" fill="#D8ECD8" rx="6"/>
+        <rect x="682" y="200" width="106" height="72" fill="#D8ECD8" rx="6"/>
+      </svg>
+
+      <!-- User location -->
+      <div class="user-dot" style="left:47%;top:52%;"></div>
+
+      <!-- Deal pins -->
+      <div class="pin" style="left:28%;top:16%;">
+        <div class="pin-bubble">30% off</div>
+        <div class="pin-tail"></div>
+      </div>
+
+      <div class="pin" style="left:55%;top:22%;">
+        <div class="pin-bubble white">$8 off</div>
+        <div class="pin-tail white"></div>
+      </div>
+
+      <div class="pin" style="left:18%;top:50%;">
+        <div class="pin-bubble scarce">🔥 2 left</div>
+        <div class="pin-tail scarce"></div>
+      </div>
+
+      <div class="pin" style="left:68%;top:44%;">
+        <div class="pin-bubble">20% off</div>
+        <div class="pin-tail"></div>
+      </div>
+
+      <div class="pin" style="left:80%;top:18%;">
+        <div class="pin-bubble white">Free item</div>
+        <div class="pin-tail white"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="section-label">For deal hunters</div>
+    <h2 class="section-title">Three steps to saving money right now</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-icon">📍</div>
+        <h3>Open the map</h3>
+        <p>See live deals at businesses within walking distance of wherever you are right now. No sign-up required to browse.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">👀</div>
+        <h3>Pick a deal</h3>
+        <p>Search for what you want or browse the map. Deals sorted by best value and proximity. Scarcity badges show what's going fast.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">🚶</div>
+        <h3>Walk in and save</h3>
+        <p>Head over, tap "I'm Here", show the code to staff. No pre-purchasing, no printing, no expiring vouchers sitting in your inbox.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MERCHANT BAND -->
+  <section class="merchant-band" id="merchants">
+    <div class="merchant-inner">
+      <div>
+        <div class="section-label">For merchants</div>
+        <h2 class="section-title">Drive real foot traffic. Only pay when it works.</h2>
+        <p>
+          Syft puts your deal in front of people within walking distance right now — not people browsing from their couch. You set the terms, you set the cap, and you only pay when someone walks through the door.
+        </p>
+        <a href="/business" class="btn-primary" style="display:inline-flex;">
+          List your business free →
+        </a>
+      </div>
+      <div class="merchant-perks">
+        <div class="perk">
+          <div class="perk-icon">🎯</div>
+          <div class="perk-text">
+            <strong>Real foot traffic, not clicks</strong>
+            <span>Customers walk in with intent. You're not paying for impressions or bounced website visits.</span>
+          </div>
+        </div>
+        <div class="perk">
+          <div class="perk-icon">🔢</div>
+          <div class="perk-text">
+            <strong>You set the redemption cap</strong>
+            <span>Never get flooded. Run a deal for 10 people or 10,000. The deal hides itself when the cap hits.</span>
+          </div>
+        </div>
+        <div class="perk">
+          <div class="perk-icon">📈</div>
+          <div class="perk-text">
+            <strong>Promote to move up the map</strong>
+            <span>Organic reach is free. Pay a small amount to push your deal to the top when you need a rush of customers.</span>
+          </div>
+        </div>
+        <div class="perk">
+          <div class="perk-icon">📊</div>
+          <div class="perk-text">
+            <strong>See exactly what's working</strong>
+            <span>Track views, opens, and redemptions per deal. Know your ROI down to the walk-in.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p><strong>Syft</strong> &nbsp;·&nbsp; Local deals worth walking to &nbsp;·&nbsp; <a href="/app" style="color:var(--amber);text-decoration:none;">Open the app</a> &nbsp;·&nbsp; <a href="/business" style="color:var(--amber);text-decoration:none;">Merchant portal</a></p>
+  </footer>
+
+</body>
+</html>

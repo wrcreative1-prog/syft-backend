@@ -54,6 +54,18 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// ── Static files (manifest, service worker, icons) ───────────────────────────
+// Must come before route handlers so /manifest.json, /sw.js, /icons/* are served.
+app.use(express.static(path.join(__dirname, 'public'), {
+  index: false,   // don't auto-serve index.html from /
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('sw.js')) {
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Service-Worker-Allowed', '/');
+    }
+  }
+}));
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/auth',           authLimiter, authRouter);
 app.use('/api/deals',      apiLimiter,  dealsRouter);
@@ -71,9 +83,13 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ── Root ──────────────────────────────────────────────────────────────────────
+// ── Root — marketing landing page ─────────────────────────────────────────────
 app.get('/', (req, res) => {
-  res.json({ name: 'Syft API', version: '1.0.0', status: 'running' });
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com;"
+  );
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ── Consumer mobile app ───────────────────────────────────────────────────────
