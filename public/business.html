@@ -173,6 +173,47 @@ body {
 .field-row { display: flex; gap: 10px; }
 .field-row .field { flex: 1; }
 
+/* Redemption-cap toggle switch */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #FAFAF8;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.toggle-row:hover { border-color: var(--amber); }
+.toggle-label { font-size: 14px; font-weight: 600; color: var(--text); }
+.toggle-hint  { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.toggle-switch { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: #D1D5DB; border-radius: 999px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  left: 3px; top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--amber); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+.cap-progress {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--amber-deep);
+  background: #FEF3C7; border-radius: 6px; padding: 3px 8px;
+}
+
 /* Category pills */
 .cat-pills {
   display: flex;
@@ -1338,6 +1379,22 @@ body {
       </div>
     </div>
 
+    <!-- Redemption cap -->
+    <div class="toggle-row" onclick="document.getElementById('modal-cap-toggle').click()">
+      <div>
+        <div class="toggle-label">Limit redemptions?</div>
+        <div class="toggle-hint">Deal hides automatically once the cap is hit</div>
+      </div>
+      <label class="toggle-switch" onclick="event.stopPropagation()">
+        <input type="checkbox" id="modal-cap-toggle" onchange="toggleCapField()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div id="modal-cap-wrap" style="display:none;margin-bottom:14px;">
+      <div class="field-label">Max redemptions</div>
+      <input id="modal-cap" class="field-input" type="number" placeholder="e.g. 20" min="1" max="9999" style="max-width:180px;" autocomplete="off">
+    </div>
+
     <div id="modal-error" class="form-error"></div>
     <button id="modal-submit" class="btn-primary" onclick="submitDeal()">Create Deal</button>
   </div>
@@ -2136,7 +2193,7 @@ async function openMicroAnalytics(dealId) {
       <div class="micro-deal-emoji">${deal.emoji}</div>
       <div>
         <div class="micro-deal-title">${escHtml(deal.title)}</div>
-        <div class="micro-deal-meta">${isActive ? '🟢 Active' : '⚫ Expired'} · ${deal.discount_value}${deal.discount_type === 'percent' ? '%' : deal.discount_type === 'dollar' ? '$' : ''} off · expires ${fmtDate(deal.expires_at)}</div>
+        <div class="micro-deal-meta">${isActive ? '🟢 Active' : '⚫ Expired'} · ${deal.discount_value}${deal.discount_type === 'percent' ? '%' : deal.discount_type === 'dollar' ? '$' : ''} off · expires ${fmtDate(deal.expires_at)}${deal.remaining_redemptions != null ? ` · <span class="cap-progress">🔥 ${deal.redemption_count || 0} / ${(deal.remaining_redemptions || 0) + (deal.redemption_count || 0)} redeemed</span>` : ''}</div>
       </div>`;
   }
   await loadMicroAnalytics();
@@ -2230,6 +2287,11 @@ function openDealModal() {
   document.querySelector('.modal-title').textContent  = 'Create a Deal';
   document.querySelectorAll('.type-pill').forEach((p,i) => p.classList.toggle('active', i === 0));
 
+  // Reset redemption cap
+  document.getElementById('modal-cap-toggle').checked = false;
+  document.getElementById('modal-cap').value           = '';
+  document.getElementById('modal-cap-wrap').style.display = 'none';
+
   const now     = new Date();
   const endDate = new Date(now.getTime() + 14 * 86400000);
   document.getElementById('modal-start').value = toLocalDatetimeValue(now);
@@ -2261,6 +2323,14 @@ function openEditModal(id, e) {
   if (d.start_at)   document.getElementById('modal-start').value = toLocalDatetimeValue(new Date(d.start_at));
   if (d.expires_at) document.getElementById('modal-end').value   = toLocalDatetimeValue(new Date(d.expires_at));
 
+  // Populate redemption cap
+  // remaining_redemptions is the countdown; original cap = remaining + already redeemed
+  const hasCap   = d.remaining_redemptions != null;
+  const capValue = hasCap ? (d.remaining_redemptions + (d.redemption_count || 0)) : '';
+  document.getElementById('modal-cap-toggle').checked        = hasCap;
+  document.getElementById('modal-cap').value                 = capValue;
+  document.getElementById('modal-cap-wrap').style.display    = hasCap ? 'block' : 'none';
+
   document.getElementById('modal-backdrop').classList.add('open');
 }
 
@@ -2280,6 +2350,12 @@ function selectModalType(el) {
   document.getElementById('modal-value').placeholder = ph;
 }
 
+function toggleCapField() {
+  const on = document.getElementById('modal-cap-toggle').checked;
+  document.getElementById('modal-cap-wrap').style.display = on ? 'block' : 'none';
+  if (on) document.getElementById('modal-cap').focus();
+}
+
 async function submitDeal() {
   const title    = document.getElementById('modal-title').value.trim();
   const desc     = document.getElementById('modal-desc').value.trim();
@@ -2289,6 +2365,12 @@ async function submitDeal() {
   const endVal   = document.getElementById('modal-end').value;
   const errEl    = document.getElementById('modal-error');
   const btn      = document.getElementById('modal-submit');
+
+  // Redemption cap
+  const capOn  = document.getElementById('modal-cap-toggle').checked;
+  const capRaw = parseInt(document.getElementById('modal-cap').value, 10);
+  if (capOn && (!capRaw || capRaw < 1)) { showError(errEl, 'Enter a valid redemption limit (at least 1).'); return; }
+  const redemptionCap = capOn ? capRaw : null;
 
   if (!title) { showError(errEl, 'Deal title is required.'); return; }
   if (isNaN(value) || value <= 0) { showError(errEl, 'Enter a valid discount value.'); return; }
@@ -2307,11 +2389,16 @@ async function submitDeal() {
   // ── EDIT mode ─────────────────────────────────────────────────────────────
   if (_editingDealId) {
     btn.disabled = true; btn.textContent = 'Saving…';
+    // For edits, recalculate remaining = cap - already_redeemed
+    const existing = _deals.find(d => d.id === _editingDealId);
+    const alreadyRedeemed = existing?.redemption_count || 0;
+    const newRemaining = redemptionCap != null ? Math.max(0, redemptionCap - alreadyRedeemed) : null;
     try {
       const res = await api('/api/deals/' + _editingDealId, { method: 'PATCH', body: JSON.stringify({
         title, description: desc, emoji,
         discount_type: _modalType, discount_value: value,
         start_at: startAt, expires_at: endAt,
+        remaining_redemptions: newRemaining,
       })});
       if (res.error) { showError(errEl, res.error); btn.disabled = false; btn.textContent = 'Save Changes'; return; }
       // Merge updated fields back into local state, preserve redemption_count
@@ -2333,7 +2420,8 @@ async function submitDeal() {
     const res = await api('/api/deals', { method: 'POST', body: JSON.stringify({
       businessId: biz.id, title, description: desc, emoji,
       category: biz.category, discountType: _modalType,
-      discountValue: value, startAt, endAt
+      discountValue: value, startAt, endAt,
+      remainingRedemptions: redemptionCap,
     })});
     if (res.error) {
       showError(errEl, res.error);
