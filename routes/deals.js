@@ -51,7 +51,6 @@ router.get('/nearby', async (req, res) => {
        FROM deals d
        JOIN businesses b ON d.business_id = b.id
        WHERE d.active    = TRUE
-         AND d.start_at   <= NOW()
          AND d.expires_at > NOW()
          AND (d.remaining_redemptions IS NULL OR d.remaining_redemptions > 0)
        ORDER BY distance_m ASC

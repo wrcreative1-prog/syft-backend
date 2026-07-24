@@ -160,6 +160,23 @@ app.use((err, req, res, next) => {
   }
   console.log(`✅  Database schema ready. (${ok} ok, ${warn} skipped)`);
 
+  // Fix businesses whose lat/lng is still the Chicago registration fallback
+  // (41.8781, -87.6298) or NULL — move them to Centerville OH where the seed
+  // data is centred so deal pins appear on the correct map area.
+  try {
+    const fix = await pool.query(`
+      UPDATE businesses
+      SET lat = 39.6409, lng = -84.1555
+      WHERE lat IS NULL
+         OR (ABS(lat::float8 - 41.8781) < 0.02 AND ABS(lng::float8 + 87.6298) < 0.02)
+    `);
+    if (fix.rowCount > 0) {
+      console.log(`📍  Fixed ${fix.rowCount} business(es) with fallback/null coordinates → Centerville OH`);
+    }
+  } catch (err) {
+    console.error('⚠️  Location fix error:', err.message);
+  }
+
   app.listen(PORT, () => {
     console.log(`🚀  Syft API running on port ${PORT}`);
     console.log(`    Environment: ${process.env.NODE_ENV || 'development'}`);
