@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/nearby', async (req, res) => {
   const lat    = parseFloat(req.query.lat);
   const lng    = parseFloat(req.query.lng);
-  const radius = Math.min(parseFloat(req.query.radius) || 2000, 10000);  // cap at 10 km
+  const radius = Math.min(parseFloat(req.query.radius) || 5000, 100000);  // cap at 100 km
   const limit  = Math.min(parseInt(req.query.limit)   || 50,   100);
 
   if (isNaN(lat) || isNaN(lng)) {
@@ -19,7 +19,9 @@ router.get('/nearby', async (req, res) => {
 
   try {
     // Haversine distance in metres — no PostGIS required.
-    // $1 = lat, $2 = lng, $3 = radius (m), $4 = limit
+    // Spatial bounding-box filter removed for now; all active deals returned
+    // sorted by distance so nearest still appear first.
+    // $1 = lat, $2 = lng, $3 = limit
     const { rows } = await pool.query(
       `SELECT
          d.id,
@@ -40,9 +42,9 @@ router.get('/nearby', async (req, res) => {
          ROUND(
            6371000 * acos(
              LEAST(1.0,
-               cos(radians($1)) * cos(radians(b.lat))
-               * cos(radians(b.lng) - radians($2))
-               + sin(radians($1)) * sin(radians(b.lat))
+               cos(radians($1)) * cos(radians(COALESCE(b.lat, $1)))
+               * cos(radians(COALESCE(b.lng, $2)) - radians($2))
+               + sin(radians($1)) * sin(radians(COALESCE(b.lat, $1)))
              )
            )
          )::int          AS distance_m
@@ -52,11 +54,9 @@ router.get('/nearby', async (req, res) => {
          AND d.start_at   <= NOW()
          AND d.expires_at > NOW()
          AND (d.remaining_redemptions IS NULL OR d.remaining_redemptions > 0)
-         AND b.lat BETWEEN $1 - ($3 / 111000.0) AND $1 + ($3 / 111000.0)
-         AND b.lng BETWEEN $2 - ($3 / (111000.0 * cos(radians($1)))) AND $2 + ($3 / (111000.0 * cos(radians($1))))
        ORDER BY distance_m ASC
-       LIMIT $4`,
-      [lat, lng, radius, limit]
+       LIMIT $3`,
+      [lat, lng, limit]
     );
 
     res.json({ deals: rows, count: rows.length });
