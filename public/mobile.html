@@ -5080,6 +5080,7 @@ async function startLocationWatch() {
           lastDealFetchLat = newLat;
           lastDealFetchLng = newLng;
           if (leafletMap) { updateUserMarker(); renderDealMarkers(); }
+          if (FIREBASE_ENABLED && window.SyftDeals) loadFirestoreDeals(newLat, newLng);
           return;
         }
 
@@ -5780,6 +5781,13 @@ function initMap() {
 
   updateUserMarker();
   renderDealMarkers();
+
+  // Fetch live deals immediately — don't wait for the user to move 100m
+  if (FIREBASE_ENABLED && window.SyftDeals) {
+    const lat = userLat || 39.6409;
+    const lng = userLng || -84.1555;
+    loadFirestoreDeals(lat, lng);
+  }
 }
 
 function updateUserMarker() {
