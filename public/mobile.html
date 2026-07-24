@@ -6218,8 +6218,12 @@ function trackDealEvent(dealId, type) {
   if (set.has(dealId)) return;
   set.add(dealId);
   // Fire-and-forget — never block the UI
-  apiFetch(`/api/deals/${dealId}/event`, {
+  const _tok = localStorage.getItem('syft_token');
+  const _hdrs = { 'Content-Type': 'application/json' };
+  if (_tok) _hdrs['Authorization'] = 'Bearer ' + _tok;
+  fetch('https://syft-backend-production.up.railway.app/api/deals/' + dealId + '/event', {
     method: 'POST',
+    headers: _hdrs,
     body: JSON.stringify({ type }),
   }).catch(() => {});
 }
