@@ -4112,6 +4112,8 @@ body {
         remainingRedemptions: d.remaining_redemptions ?? null,
         distanceKm: (d.distance_m || 0) / 1000,
         walkInUpsellMessage: d.walk_in_upsell_message || d.title,
+        lat: d.lat,
+        lng: d.lng,
       }));
     },
     async redeemDeal(dealId) {
@@ -5154,7 +5156,7 @@ const FIRESTORE_DEALS = {};   // dealId → deal object (mirrors DEALS shape)
 
 async function loadFirestoreDeals(lat, lng) {
   try {
-    const deals = await SyftDeals.getNearby(lat, lng, 20);
+    const deals = await SyftDeals.getNearby(lat, lng, 50);
     if (!deals.length) return;
 
     deals.forEach(d => {
@@ -5804,11 +5806,19 @@ function renderDealMarkers() {
   }
 
   filtered.forEach(([key, d]) => {
+    let dealLat, dealLng;
     const off = DEAL_OFFSETS[key];
-    if (!off) return;
-
-    const dealLat = userLat + off.dlat;
-    const dealLng = userLng + off.dlng;
+    if (off) {
+      // Hardcoded demo deals: position relative to user
+      dealLat = userLat + off.dlat;
+      dealLng = userLng + off.dlng;
+    } else if (d._lat != null && d._lng != null) {
+      // Live API deals: use actual business coordinates
+      dealLat = d._lat;
+      dealLng = d._lng;
+    } else {
+      return; // No position — skip
+    }
     const recommended = SyftPrefs.isForYou(key, d);
 
     const scarceTag = d.scarce ? `<div class="m-pin-scarce">🔥 ${d.left} left</div>` : '';
