@@ -5154,7 +5154,7 @@ const FIRESTORE_DEALS = {};   // dealId → deal object (mirrors DEALS shape)
 
 async function loadFirestoreDeals(lat, lng) {
   try {
-    const deals = await SyftDeals.getNearby(lat, lng, 5);
+    const deals = await SyftDeals.getNearby(lat, lng, 20);
     if (!deals.length) return;
 
     deals.forEach(d => {

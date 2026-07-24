@@ -1105,6 +1105,17 @@ body {
         </div>
         <div id="phone-verified-status"></div>
 
+        <!-- Location banner — shown when business has no GPS pin -->
+        <div id="location-banner" style="display:none;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:14px;padding:14px 18px;margin-bottom:20px;align-items:center;gap:12px;">
+          <div style="font-size:20px;flex-shrink:0;">📍</div>
+          <div style="flex:1;">
+            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:14px;color:#1d4ed8;">Pin your business on the map</div>
+            <div style="font-size:13px;color:#2563eb;margin-top:2px;">Your deals won't appear for customers until your location is set.</div>
+          </div>
+          <button id="loc-banner-btn" onclick="updateBizLocation()" style="background:#2563eb;color:white;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;border:none;border-radius:8px;padding:9px 16px;cursor:pointer;white-space:nowrap;flex-shrink:0;">📍 Set Location</button>
+        </div>
+        <div id="location-status-row" style="margin-bottom:8px;"></div>
+
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-card-label">Active Deals</div>
@@ -1705,6 +1716,8 @@ async function loadDashData() {
       api('/api/businesses/mine'),
       api('/api/deals/mine')
     ]);
+    if (bizRes.error)  console.error('[Syft] businesses error:', bizRes.error);
+    if (dealRes.error) console.error('[Syft] deals error:', dealRes.error);
     _businesses = bizRes.businesses || [];
     _deals      = dealRes.deals || [];
 
@@ -1717,10 +1730,12 @@ async function loadDashData() {
     renderStats();
     renderPlanBadge();
     renderPhoneVerifiedStatus();
+    renderLocationBanner();
     renderDealsTable();
     renderOverviewDeals();
     updateSidebarCount();
   } catch(e) {
+    console.error('[Syft] loadDashData error:', e);
     showToast('Failed to load data.', 'error');
   }
 }
@@ -2048,6 +2063,62 @@ async function verifyOtp() {
   if (_businesses[0]) _businesses[0].phone_verified = true;
   renderPhoneVerifiedStatus();
   showToast('Phone verified! You\'re good to go ✓');
+}
+
+// ── Business location banner ─────────────────────────────────────────────────
+function renderLocationBanner() {
+  const biz    = _businesses[0];
+  const banner = document.getElementById('location-banner');
+  const row    = document.getElementById('location-status-row');
+  if (!banner || !row) return;
+
+  if (!biz) { banner.style.display = 'none'; return; }
+
+  const hasLoc = biz.lat != null && biz.lng != null;
+  // Chicago fallback coords (within ~1km) means user never set real location
+  const isChicago = hasLoc && Math.abs(biz.lat - 41.8781) < 0.01 && Math.abs(biz.lng + 87.6298) < 0.01;
+
+  if (!hasLoc || isChicago) {
+    banner.style.display = 'flex';
+    row.innerHTML = '';
+  } else {
+    banner.style.display = 'none';
+    row.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px;background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid #bfdbfe;margin-bottom:12px;">📍 Location set</span>`;
+  }
+}
+
+async function updateBizLocation() {
+  const biz = _businesses[0];
+  if (!biz) { showToast('No business found. Please refresh.', 'error'); return; }
+
+  const btn = document.getElementById('loc-banner-btn');
+  btn.disabled = true; btn.textContent = '📍 Detecting…';
+
+  try {
+    const pos = await new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000, enableHighAccuracy: true })
+    );
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    const res = await api(`/api/businesses/${biz.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ lat, lng })
+    });
+
+    if (res.error) { showToast(res.error, 'error'); btn.disabled = false; btn.textContent = '📍 Set Location'; return; }
+
+    _businesses[0] = { ..._businesses[0], lat, lng };
+    renderLocationBanner();
+    showToast('Location updated! Your deals are now on the map. ✓', 'success');
+  } catch(e) {
+    btn.disabled = false; btn.textContent = '📍 Set Location';
+    if (e.code === 1) {
+      showToast('Location access denied. Please allow location in your browser.', 'error');
+    } else {
+      showToast('Could not detect location. Try again.', 'error');
+    }
+  }
 }
 
 function renderPhoneVerifiedStatus() {
