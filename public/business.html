@@ -2148,7 +2148,7 @@ async function loadMacroAnalytics() {
     _macroData = data;
     renderMacroFunnel(data.totals);
     renderMacroRating(data.deals);
-    renderDealsTable(data.deals);
+    renderAnalyticsDealsTable(data.deals);
   } catch (e) {
     document.getElementById('analytics-funnel').innerHTML =
       '<div style="color:var(--danger);font-size:14px;">Could not load analytics.</div>';
@@ -2218,7 +2218,7 @@ function renderMacroRating(deals) {
     </div>`;
 }
 
-function renderDealsTable(deals) {
+function renderAnalyticsDealsTable(deals) {
   if (!deals.length) {
     document.getElementById('analytics-deals-table').innerHTML =
       '<div style="padding:20px 24px;color:var(--muted);font-size:14px;">No deals yet.</div>';
