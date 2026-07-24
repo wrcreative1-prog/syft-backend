@@ -5159,16 +5159,37 @@ async function loadFirestoreDeals(lat, lng) {
     const deals = await SyftDeals.getNearby(lat, lng, 50);
     if (!deals.length) return;
 
+    // ── Direct Leaflet markers — bypass DEAL_OFFSETS pipeline entirely ─────
+    if (leafletMap) {
+      if (!window._apiMarkers) window._apiMarkers = [];
+      window._apiMarkers.forEach(m => m.remove());
+      window._apiMarkers = [];
+      deals.forEach(d => {
+        if (d.lat == null || d.lng == null) return;
+        const label = d.discountType === 'percent'
+          ? `${Math.round(d.discountValue)}% off`
+          : `$${d.discountValue} off`;
+        const icon = L.divIcon({
+          html: `<div class="m-pin-bubble gold">${label}</div><div class="m-pin-tail gold"></div>`,
+          className: 'map-deal-marker',
+          iconSize: null,
+          iconAnchor: [24, 28]
+        });
+        const m = L.marker([d.lat, d.lng], { icon }).addTo(leafletMap);
+        m.on('click', () => openDeal(d.id));
+        window._apiMarkers.push(m);
+      });
+    }
+    // ──────────────────────────────────────────────────────────────────────
+
     deals.forEach(d => {
-      const key = d.id;
-      FIRESTORE_DEALS[key] = mapApiDealToLocal(d);
-      // Track "seen" event for merchant analytics (once per session per deal)
+      FIRESTORE_DEALS[d.id] = mapApiDealToLocal(d);
       trackDealEvent(d.id, 'seen');
     });
 
     firestoreDealsLoaded = true;
-    renderDealMarkers();   // Re-render with live deals
-    console.log(`Loaded ${deals.length} live deals from Firestore`);
+    renderDealMarkers();
+    console.log(`[Syft] Loaded ${deals.length} live deals`);
   } catch (err) {
     console.warn('Firestore deals unavailable, using demo data:', err);
   }
