@@ -5167,9 +5167,9 @@ async function loadFirestoreDeals(lat, lng) {
       window._apiMarkers = [];
       deals.forEach(d => {
         if (d.lat == null || d.lng == null) return;
-        const label = d.discountType === 'percent'
+        const label = d.title || (d.discountType === 'percent'
           ? `${Math.round(d.discountValue)}% off`
-          : `$${d.discountValue} off`;
+          : `$${d.discountValue} off`);
         const icon = L.divIcon({
           html: `<div class="m-pin-bubble gold">${label}</div><div class="m-pin-tail gold"></div>`,
           className: 'map-deal-marker',
@@ -6671,7 +6671,7 @@ function mapApiDealToLocal(d) {
     upsellAmount: d.discountType === 'percent' ? `${d.discountValue}%` : `$${d.discountValue}`,
     upsellDesc:   d.description,
     pinPos:       `top:${20 + Math.random() * 60}%;left:${10 + Math.random() * 60}%`,
-    pinLabel:     d.discountType === 'percent' ? `${d.discountValue}% off` : `$${d.discountValue} off`,
+    pinLabel:     d.title || (d.discountType === 'percent' ? `${d.discountValue}% off` : `$${d.discountValue} off`),
     pinGold:      true,
     _lat:         d.lat,
     _lng:         d.lng,
